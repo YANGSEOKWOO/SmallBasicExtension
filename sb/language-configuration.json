@@ -1,0 +1,64 @@
+// Ref : https://code.visualstudio.com/api/language-extensions/language-configuration-guide
+{
+  // 주석 설정 : Comment toggling
+  "comments": {
+    "lineComment": "'", // 한 줄 주석 기호
+    "blockComment": ["REM", ""] // 블록 주석 시작 및 끝 기호
+  },
+
+  // 괄호 설정 : Brackets definition
+  "brackets": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"]
+  ],
+
+  // 자동 닫기 설정 : Auto Closing
+  "autoClosingPairs": [
+    { "open": "{", "close": "}" },
+    { "open": "[", "close": "]" },
+    { "open": "(", "close": ")" },
+    { "open": "'", "close": "'", "notIn": ["string", "comment"] }, // 문자열 및 주석 내에서는 자동 닫기 적용하지 않음
+    { "open": "\"", "close": "\"", "notIn": ["string"] },
+    { "open": "`", "close": "`", "notIn": ["string", "comment"] },
+    { "open": "REM", "close": "", "notIn": ["string"] } // SmallBASIC의 블록 주석은 닫는 기호가 필요 없음
+  ],
+
+  // 자동 닫기 전에 적용할 문자 설정 : Autoclosing before
+  "autoCloseBefore": ";:.,=}])>` \n\t",
+
+  // 둘러싸기 설정 : Autosurrounding
+  "surroundingPairs": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"],
+    ["'", "'"],
+    ["\"", "\""],
+    ["`", "`"]
+  ],
+
+  // 접기 설정 : Folding (indentation)
+  "folding": {
+    "markers": {
+      "start": "^\\s*\\b#region\\b", // 주석에서 지원하는 지역 접기 시작 마커
+      "end": "^\\s*\\b#endregion\\b" // 주석에서 지원하는 지역 접기 끝 마커
+    }
+  },
+
+  // 단어 패턴 설정 : Word Patterns
+  "wordPattern": "(-?\\d*\\.\\d\\w*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\'\\\"\\,\\.\\<\\>\\/\\?\\s]+)",
+
+  // 들여쓰기 규칙 설정: Indentation Rules
+  "indentationRules": {
+    "increaseIndentPattern": "^((?!\\bREM\\b).)*(\\{[^}\"'`]*|\\([^)\"'`]*|\\[[^\\]\"'`]*)$", // REM 주석을 제외한 경우에 증가
+    "decreaseIndentPattern": "^((?!.*?\\/\\*).*\\*/)?\\s*[\\)\\}\\]].*$" // 블록 주석을 제외한 경우에 감소
+  },
+  //
+  "onEnterRules": [
+    {
+      // beforeText에 나타난 코드 이후에 들여쓰기
+      "beforeText": "^\\s*\\b(?:Sub|For|If|While|EndIf|EndWhile)\\b.*?$",
+      "action": { "indent": "indent" }
+    }
+  ]
+}

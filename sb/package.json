@@ -17,6 +17,20 @@
         "command": "sb.helloWorld",
         "title": "Hello World"
       }
+    ],
+    "languages": [
+      {
+        "id": "smallbasic",
+        "aliases": [
+          "Small Basic",
+          "smallbasic"
+        ],
+        "extensions": [
+          ".sb",
+          ".smallbasic"
+        ],
+        "configuration": "./language-configuration.json"
+      }
     ]
   },
   "scripts": {
