@@ -37,6 +37,13 @@
         "language": "smallbasic",
         "path": "./snippets/smallbasic.snippets.json"
       }
+    ],
+    "grammars": [
+      {
+        "language": "smallbasic",
+        "scopeName": "source.smallbasic",
+        "path": "./syntaxes/smallbasic.tmLanguage.json"
+      }
     ]
   },
   "scripts": {
