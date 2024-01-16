@@ -27,21 +27,73 @@ exports.deactivate = exports.activate = void 0;
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __importStar(require("vscode"));
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+// 추가항목 Text라는 함수?
+// 그에 따른 GetCharacter
+//
 function activate(context) {
-    // Use the console to output diagnostic information (console.log) and errors (console.error)
-    // This line of code will only be executed once when your extension is activated
     console.log('Congratulations, your extension "sb" is now active!');
-    // The command has been defined in the package.json file
-    // Now provide the implementation of the command with registerCommand
-    // The commandId parameter must match the command field in package.json
-    let disposable = vscode.commands.registerCommand('sb.helloWorld', () => {
-        // The code you place here will be executed every time your command is executed
-        // Display a message box to the user
-        vscode.window.showInformationMessage('Hello World from SB!');
+    const Completionprovider = vscode.languages.registerCompletionItemProvider("smallbasic", {
+        provideCompletionItems(document, position, token, context) {
+            // Text Object Completion
+            const TextsnippetCompletion = new vscode.CompletionItem("Text");
+            // TextsnippetCompletion.insertText = new vscode.SnippetString("Text");
+            const Textdocs = new vscode.MarkdownString("Text 함수입니다. [link](com) .");
+            TextsnippetCompletion.documentation = Textdocs;
+            Textdocs.baseUri = vscode.Uri.parse("https://naver");
+            // TextWindow에 대한 Completion
+            const TextWindowSnippetCompletion = new vscode.CompletionItem("TextWindow");
+            // TextWindowSnippetCompletion.insertText = new vscode.SnippetString(
+            //   "TextWindow"
+            // );
+            const docs = new vscode.MarkdownString("Text Window 객체");
+            return [TextsnippetCompletion, TextWindowSnippetCompletion];
+        },
     });
-    context.subscriptions.push(disposable);
+    // TextWindow에 대한 메서드 정의
+    const TextWindowMethodprovider = vscode.languages.registerCompletionItemProvider("smallbasic", {
+        provideCompletionItems(document, position) {
+            // return [...textWindowCompletionItems, ...textCompletionItems];
+            // TextWindow 메서드 및 속성에 대한 코드 완성 항목 생성
+            const textWindowCompletionItems = [
+                new vscode.CompletionItem("WriteLine", vscode.CompletionItemKind.Method),
+                new vscode.CompletionItem("Write", vscode.CompletionItemKind.Method),
+                new vscode.CompletionItem("Read", vscode.CompletionItemKind.Method),
+                new vscode.CompletionItem("ReadNumber", vscode.CompletionItemKind.Method),
+            ];
+            const textCompletionItems = [
+                new vscode.CompletionItem("Append", vscode.CompletionItemKind.Method),
+                new vscode.CompletionItem("GetLength", vscode.CompletionItemKind.Method),
+                new vscode.CompletionItem("IsSubText", vscode.CompletionItemKind.Method),
+                new vscode.CompletionItem("GetCharacter", vscode.CompletionItemKind.Method),
+            ];
+            const linePrefix = document
+                .lineAt(position)
+                .text.slice(0, position.character);
+            if (linePrefix.endsWith("Text.")) {
+                return textCompletionItems;
+            }
+            else if (linePrefix.endsWith("TextWindow.")) {
+                return textWindowCompletionItems;
+            }
+            // const word = document.getText(
+            //   document.getWordRangeAtPosition(position)
+            // );
+            // // 'TextWindow' 키워드가 있는 경우
+            // if (word === "TextWindow.") {
+            //   return textWindowCompletionItems;
+            // }
+            // // 'Text' 키워드가 있는 경우
+            // if (word === "Text.") {
+            //   return textCompletionItems;
+            // }
+            // 그 외의 경우
+            return undefined;
+        },
+    }, ".");
+    let disposable = vscode.commands.registerCommand("sb.helloWorld", () => {
+        vscode.window.showInformationMessage("Hello World from SB!");
+    });
+    context.subscriptions.push(disposable, Completionprovider, TextWindowMethodprovider);
 }
 exports.activate = activate;
 // This method is called when your extension is deactivated
