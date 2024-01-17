@@ -1,20 +1,16 @@
-# sb README
+# SmallBasic Visual Studio Code Extension
 
-This is the README for your extension "sb". After writing up a brief description, we recommend including the following sections.
+This is the README for your extension "SmallBasic".
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- Syntax highlighting
+- Code snippets (`For.. EndFor`, `IF...Else`)
+- Code Completion(`Text`, `TextWrite`)
 
-For example if there is an image subfolder under your extension project workspace:
+## How to use
 
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+open `src/extension.ts` and start debugging(F5) by VS extension
 
 ## Extension Settings
 
