@@ -18,6 +18,7 @@ let link: net.Socket | null;
 let input: readline.ReadLine;
 let output: NodeJS.WritableStream;
 let connect: boolean;
+let CompletionProvider: any;
 // sendMessage : 텍스트 길이
 // cursorindex : 커서 위치
 // textArea : 전체 텍스트
@@ -25,7 +26,47 @@ let connect: boolean;
 export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "sb" is now active!');
   // accessServer1("localhost");
+  const completionTest = vscode.commands.registerCommand(
+    "sb.completion",
+    () => {
+      const disposable = vscode.Disposable.from(CompletionProvider);
+      disposable.dispose();
+      CompletionProvider = vscode.languages.registerCompletionItemProvider(
+        "smallbasic",
+        {
+          provideCompletionItems(
+            document: vscode.TextDocument,
+            position: vscode.Position,
+            token: vscode.CancellationToken,
+            context: vscode.CompletionContext
+          ) {
+            // Text Object Completion
+            const TextsnippetCompletion = new vscode.CompletionItem("Text");
+            // TextsnippetCompletion.insertText = new vscode.SnippetString("Text");
+            const Textdocs: any = new vscode.MarkdownString(
+              "Text 함수입니다. [link](com) ."
+            );
+            TextsnippetCompletion.documentation = Textdocs;
+            Textdocs.baseUri = vscode.Uri.parse("https://naver");
 
+            // TextWindow에 대한 Completion
+            const TextWindowSnippetCompletion = new vscode.CompletionItem(
+              "TextWindow"
+            );
+            // TextWindowSnippetCompletion.insertText = new vscode.SnippetString(
+            //   "TextWindow"
+            // );
+            const docs: any = new vscode.MarkdownString("Text Window 객체");
+
+            return [TextsnippetCompletion, TextWindowSnippetCompletion];
+          },
+        }
+      );
+      console.log("pushspsu");
+      // context.subscriptions.push(Completionprovider);
+      vscode.commands.executeCommand("editor.action.triggerSuggest");
+    }
+  );
   const testProvider = vscode.commands.registerCommand("sb.test", () => {
     const activeEditor = vscode.window.activeTextEditor;
 
@@ -53,37 +94,7 @@ export function activate(context: vscode.ExtensionContext) {
       console.log("현재 열려있는 편집기가 없습니다.");
     }
   });
-  const Completionprovider = vscode.languages.registerCompletionItemProvider(
-    "smallbasic",
-    {
-      provideCompletionItems(
-        document: vscode.TextDocument,
-        position: vscode.Position,
-        token: vscode.CancellationToken,
-        context: vscode.CompletionContext
-      ) {
-        // Text Object Completion
-        const TextsnippetCompletion = new vscode.CompletionItem("Text");
-        // TextsnippetCompletion.insertText = new vscode.SnippetString("Text");
-        const Textdocs: any = new vscode.MarkdownString(
-          "Text 함수입니다. [link](com) ."
-        );
-        TextsnippetCompletion.documentation = Textdocs;
-        Textdocs.baseUri = vscode.Uri.parse("https://naver");
 
-        // TextWindow에 대한 Completion
-        const TextWindowSnippetCompletion = new vscode.CompletionItem(
-          "TextWindow"
-        );
-        // TextWindowSnippetCompletion.insertText = new vscode.SnippetString(
-        //   "TextWindow"
-        // );
-        const docs: any = new vscode.MarkdownString("Text Window 객체");
-
-        return [TextsnippetCompletion, TextWindowSnippetCompletion];
-      },
-    }
-  );
   const variableCompletionProvider =
     vscode.languages.registerCompletionItemProvider("smallbasic", {
       provideCompletionItems(
@@ -110,74 +121,69 @@ export function activate(context: vscode.ExtensionContext) {
       },
     });
   // TextWindow에 대한 메서드 정의
-  const TextWindowMethodprovider =
-    vscode.languages.registerCompletionItemProvider(
-      "smallbasic",
-      {
-        provideCompletionItems(
-          document: vscode.TextDocument,
-          position: vscode.Position
-        ) {
-          // return [...textWindowCompletionItems, ...textCompletionItems];
-          // TextWindow 메서드 및 속성에 대한 코드 완성 항목 생성
-          const textWindowCompletionItems: vscode.CompletionItem[] = [
-            new vscode.CompletionItem(
-              "WriteLine",
-              vscode.CompletionItemKind.Method
-            ),
-            new vscode.CompletionItem(
-              "Write",
-              vscode.CompletionItemKind.Method
-            ),
-            new vscode.CompletionItem("Read", vscode.CompletionItemKind.Method),
-            new vscode.CompletionItem(
-              "ReadNumber",
-              vscode.CompletionItemKind.Method
-            ),
-          ];
-          const textCompletionItems: vscode.CompletionItem[] = [
-            new vscode.CompletionItem(
-              "Append",
-              vscode.CompletionItemKind.Method
-            ),
-            new vscode.CompletionItem(
-              "GetLength",
-              vscode.CompletionItemKind.Method
-            ),
-            new vscode.CompletionItem(
-              "IsSubText",
-              vscode.CompletionItemKind.Method
-            ),
-            new vscode.CompletionItem(
-              "GetCharacter",
-              vscode.CompletionItemKind.Method
-            ),
-          ];
+  // const TextWindowMethodprovider =
+  //   vscode.languages.registerCompletionItemProvider(
+  //     "smallbasic",
+  //     {
+  //       provideCompletionItems(
+  //         document: vscode.TextDocument,
+  //         position: vscode.Position
+  //       ) {
+  //         // return [...textWindowCompletionItems, ...textCompletionItems];
+  //         // TextWindow 메서드 및 속성에 대한 코드 완성 항목 생성
+  //         const textWindowCompletionItems: vscode.CompletionItem[] = [
+  //           new vscode.CompletionItem(
+  //             "WriteLine",
+  //             vscode.CompletionItemKind.Method
+  //           ),
+  //           new vscode.CompletionItem(
+  //             "Write",
+  //             vscode.CompletionItemKind.Method
+  //           ),
+  //           new vscode.CompletionItem("Read", vscode.CompletionItemKind.Method),
+  //           new vscode.CompletionItem(
+  //             "ReadNumber",
+  //             vscode.CompletionItemKind.Method
+  //           ),
+  //         ];
+  //         const textCompletionItems: vscode.CompletionItem[] = [
+  //           new vscode.CompletionItem(
+  //             "Append",
+  //             vscode.CompletionItemKind.Method
+  //           ),
+  //           new vscode.CompletionItem(
+  //             "GetLength",
+  //             vscode.CompletionItemKind.Method
+  //           ),
+  //           new vscode.CompletionItem(
+  //             "IsSubText",
+  //             vscode.CompletionItemKind.Method
+  //           ),
+  //           new vscode.CompletionItem(
+  //             "GetCharacter",
+  //             vscode.CompletionItemKind.Method
+  //           ),
+  //         ];
 
-          const linePrefix = document
-            .lineAt(position)
-            .text.slice(0, position.character);
-          if (linePrefix.endsWith("Text.")) {
-            return textCompletionItems;
-          } else if (linePrefix.endsWith("TextWindow.")) {
-            return textWindowCompletionItems;
-          }
-          return undefined;
-        },
-      },
-      "."
-    );
+  //         const linePrefix = document
+  //           .lineAt(position)
+  //           .text.slice(0, position.character);
+  //         if (linePrefix.endsWith("Text.")) {
+  //           return textCompletionItems;
+  //         } else if (linePrefix.endsWith("TextWindow.")) {
+  //           return textWindowCompletionItems;
+  //         }
+  //         return undefined;
+  //       },
+  //     },
+  //     "."
+  //   );
 
   let disposable = vscode.commands.registerCommand("sb.helloWorld", () => {
     vscode.window.showInformationMessage("Hello World from SB!");
   });
 
-  context.subscriptions.push(
-    disposable,
-    Completionprovider,
-    TextWindowMethodprovider,
-    variableCompletionProvider
-  );
+  context.subscriptions.push(disposable, variableCompletionProvider);
 }
 
 // This method is called when your extension is deactivated
