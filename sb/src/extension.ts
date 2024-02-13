@@ -27,6 +27,11 @@ let stateNumber: string | null;
 let candidates: { [key: string]: string } = {};
 const path = require("path");
 
+/**
+ * state값을 통해 DB에 있는 state번호의 candidate를 가져와 key value형식으로 배열로 반환하는 함수
+ * @param {string} string: state값
+ * @returns key value 형태의 candidates배열 key: Completion name, value: frequency
+ */
 function readFile(state: string) {
   console.log("_dirname", __dirname);
   const fileName = path.join(
@@ -101,11 +106,7 @@ export function activate(context: vscode.ExtensionContext) {
       // 커서 위치 가져오기
       const cursorPosition = activeEditor.selection.active;
       const cursorOffset = document.offsetAt(cursorPosition);
-      serverConnect(
-        document.getText().length.toString(),
-        cursorOffset,
-        document.getText()
-      );
+      serverConnect(cursorOffset, document.getText());
     } else {
       console.log("현재 열려있는 편집기가 없습니다.");
     }
@@ -118,19 +119,19 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(disposable, hotKeyProvider, completionTest);
 }
 
-// 서버와 통신하는 과정
-async function serverConnect(
-  sendMessage: string,
-  cursorindex: number,
-  textArea: string
-) {
+/**
+ * 서버와 통신하는 함수
+ * @param {number}cursorindex 커서의 현재 위치
+ * @param {string}textArea 열려있는 문서의 전체 텍스트
+ *  */
+async function serverConnect(cursorindex: number, textArea: string) {
   if (link === null) {
     return;
   }
   accessServer1("localhost");
   // 커서 앞 텍스트 길이 보내기
-  console.log("커서 앞 텍스트 길이", sendMessage);
-  link.write(`${sendMessage} True`);
+  console.log("커서 앞 텍스트 길이", textArea.length.toString());
+  link.write(`${textArea.length.toString()} True`);
   link.end();
   closingConnecting1();
 
@@ -155,7 +156,10 @@ async function serverConnect(
   // 구문 완성 결과를 문사열로 받기
   accessServer1("localhost");
 }
-// 서버에서 데이터를 받으면, 전처리 후 state값으로 DB값을 읽어와 위의 completion에게 전달
+/**
+ * 서버에서 데이터를 받으면, state값으로 DB값을 읽어온 후 sb.completion명령어를 실행한다.
+ * @param {string} 포트번호
+ */
 function accessServer1(host: string) {
   try {
     // 서버에 소켓 연결
@@ -190,7 +194,9 @@ function accessServer1(host: string) {
     connect = false;
   }
 }
-
+/**
+ * 연결을 종료하는 함수
+ */
 function closingConnecting1() {
   try {
     if (link != null) {
