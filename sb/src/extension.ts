@@ -82,7 +82,8 @@ export function activate(context: vscode.ExtensionContext) {
             }
             return CompletionItems;
           },
-        }
+        },
+        "."
       );
       // Triggest Suggest 실행
       vscode.commands.executeCommand("editor.action.triggerSuggest");
@@ -91,7 +92,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // hot key를 누르면 시작되는 command
   // Server에게 값을 준다.
-  const testProvider = vscode.commands.registerCommand("sb.test", () => {
+  const hotKeyProvider = vscode.commands.registerCommand("sb.hotkey", () => {
     const activeEditor = vscode.window.activeTextEditor;
 
     if (activeEditor) {
@@ -114,7 +115,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.showInformationMessage("Hello World from SB!");
   });
 
-  context.subscriptions.push(disposable, testProvider, completionTest);
+  context.subscriptions.push(disposable, hotKeyProvider, completionTest);
 }
 
 // 서버와 통신하는 과정

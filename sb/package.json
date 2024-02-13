@@ -14,6 +14,13 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "keybindings": [
+      {
+        "key": "ctrl+space",
+        "command": "sb.hotkey",
+        "when": "editorTextFocus && !suggestWidgetVisible"
+      }
+    ],
     "commands": [
       {
         "command": "sb.helloWorld",
@@ -22,10 +29,6 @@
       {
         "command": "sb.sendData",
         "title": "Data보내기"
-      },
-      {
-        "command": "sb.test",
-        "title": "test"
       },
       {
         "command": "sb.completion",
