@@ -64,36 +64,33 @@ export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "sb" is now active!');
 
   // 서버와 통신 후 받은 candidates를 가지고 후보목록을 보여주는 Command
-  const completionTest = vscode.commands.registerCommand(
-    "sb.completion",
-    () => {
-      // 기존의 Completion 삭제
-      const disposable = vscode.Disposable.from(CompletionProvider);
-      disposable.dispose();
+  const completionTest = vscode.commands.registerCommand("sb.subhotkey", () => {
+    // 기존의 Completion 삭제
+    const disposable = vscode.Disposable.from(CompletionProvider);
+    disposable.dispose();
 
-      // 새로운 Completion 등록
-      CompletionProvider = vscode.languages.registerCompletionItemProvider(
-        "smallbasic",
-        {
-          provideCompletionItems(): vscode.ProviderResult<
-            vscode.CompletionItem[] | vscode.CompletionList
-          > {
-            const CompletionItems: vscode.CompletionItem[] = [];
-            for (const key in candidates) {
-              const completion = new vscode.CompletionItem(key);
-              const completionDocs = new vscode.MarkdownString(candidates[key]);
-              completion.documentation = completionDocs;
-              CompletionItems.push(completion);
-            }
-            return CompletionItems;
-          },
+    // 새로운 Completion 등록
+    CompletionProvider = vscode.languages.registerCompletionItemProvider(
+      "smallbasic",
+      {
+        provideCompletionItems(): vscode.ProviderResult<
+          vscode.CompletionItem[] | vscode.CompletionList
+        > {
+          const CompletionItems: vscode.CompletionItem[] = [];
+          for (const key in candidates) {
+            const completion = new vscode.CompletionItem(key);
+            const completionDocs = new vscode.MarkdownString(candidates[key]);
+            completion.documentation = completionDocs;
+            CompletionItems.push(completion);
+          }
+          return CompletionItems;
         },
-        "."
-      );
-      // Triggest Suggest 실행
-      vscode.commands.executeCommand("editor.action.triggerSuggest");
-    }
-  );
+      },
+      "."
+    );
+    // Triggest Suggest 실행
+    vscode.commands.executeCommand("editor.action.triggerSuggest");
+  });
 
   // hot key를 누르면 시작되는 command
   // Server에게 값을 준다.

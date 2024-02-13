@@ -27,12 +27,8 @@
         "title": "Hello World"
       },
       {
-        "command": "sb.sendData",
-        "title": "Data보내기"
-      },
-      {
-        "command": "sb.completion",
-        "title": "completion"
+        "command": "sb.subhotkey",
+        "title": "subhotkey"
       }
     ],
     "languages": [
