@@ -23,12 +23,20 @@
     ],
     "commands": [
       {
+        "command": "sb.hotkey",
+        "title": "hotkey"
+      },
+      {
         "command": "sb.helloWorld",
         "title": "Hello World"
       },
       {
         "command": "sb.subhotkey",
         "title": "subhotkey"
+      },
+      {
+        "command": "sb.test",
+        "title": "test"
       }
     ],
     "languages": [

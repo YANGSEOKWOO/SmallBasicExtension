@@ -24,8 +24,13 @@ let output: NodeJS.WritableStream;
 let connect: boolean;
 let CompletionProvider: any;
 let stateNumber: string | null;
-let candidates: { [key: string]: string } = {};
+let candidates: Item[];
 const path = require("path");
+
+type Item = {
+  key: string;
+  value: number;
+};
 
 /**
  * state값을 통해 DB에 있는 state번호의 candidate를 가져와 key value형식으로 배열로 반환하는 함수
@@ -46,7 +51,7 @@ function readFile(state: string) {
   const endIdx = fileContent.indexOf(end);
   const Text = fileContent.slice(startIdx, endIdx);
 
-  const result: { [key: string]: string } = {};
+  const result: Item[] = [];
   const lines = Text.split("\n");
   for (const line of lines) {
     // State 문장 삭제
@@ -55,8 +60,8 @@ function readFile(state: string) {
     }
     const parts = line.split(":");
     const key = parts[0].trim();
-    const value = parts[1].trim();
-    result[key] = value;
+    const value = parseInt(parts[1].trim());
+    result.push({ key, value });
   }
   return result;
 }
@@ -69,6 +74,7 @@ export function activate(context: vscode.ExtensionContext) {
     const disposable = vscode.Disposable.from(CompletionProvider);
     disposable.dispose();
 
+    candidates.sort((a, b) => b.value - a.value);
     // 새로운 Completion 등록
     CompletionProvider = vscode.languages.registerCompletionItemProvider(
       "smallbasic",
@@ -77,9 +83,9 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.CompletionItem[] | vscode.CompletionList
         > {
           const CompletionItems: vscode.CompletionItem[] = [];
-          for (const key in candidates) {
+          for (const { key, value } of candidates) {
             const completion = new vscode.CompletionItem(key);
-            const completionDocs = new vscode.MarkdownString(candidates[key]);
+            const completionDocs = new vscode.MarkdownString(value.toString());
             completion.documentation = completionDocs;
             CompletionItems.push(completion);
           }
@@ -112,8 +118,11 @@ export function activate(context: vscode.ExtensionContext) {
   let disposable = vscode.commands.registerCommand("sb.helloWorld", () => {
     vscode.window.showInformationMessage("Hello World from SB!");
   });
+  let test = vscode.commands.registerCommand("sb.test", () => {
+    vscode.commands.executeCommand("editor.action.triggerSuggest");
+  });
 
-  context.subscriptions.push(disposable, hotKeyProvider, completionTest);
+  context.subscriptions.push(disposable, hotKeyProvider, completionTest, test);
 }
 
 /**
@@ -178,7 +187,7 @@ function accessServer1(host: string) {
       candidates = readFile(stateNumber);
       console.log("name", candidates);
       console.log("서버에서 받은 데이터:", decodedString);
-      vscode.commands.executeCommand("sb.completion");
+      vscode.commands.executeCommand("sb.subhotkey");
     });
 
     link.on("end", () => {
