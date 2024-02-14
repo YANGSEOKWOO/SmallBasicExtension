@@ -23,7 +23,7 @@ let input: readline.ReadLine;
 let output: NodeJS.WritableStream;
 let connect: boolean;
 let CompletionProvider: any;
-let stateNumber: string | null;
+let stateNumber: number[] | null;
 let candidates: Item[];
 const path = require("path");
 
@@ -37,32 +37,35 @@ type Item = {
  * @param {string} string: state값
  * @returns key value 형태의 candidates배열 key: Completion name, value: frequency
  */
-function readFile(state: string) {
+function readFile(states: number[]) {
   console.log("_dirname", __dirname);
   const fileName = path.join(
     __dirname,
     "../src/smallbasic-syntax-completion-candidates-results.txt"
   );
   let fileContent = fs.readFileSync(fileName, "utf8");
-
-  const start = `State ${state}`;
-  const end = `State ${parseInt(state) + 1}`;
-  const startIdx = fileContent.indexOf(start);
-  const endIdx = fileContent.indexOf(end);
-  const Text = fileContent.slice(startIdx, endIdx);
-
   const result: Item[] = [];
-  const lines = Text.split("\n");
-  for (const line of lines) {
-    // State 문장 삭제
-    if (line[0] !== "[") {
-      continue;
+
+  for (const state of states) {
+    const start = `State ${state}`;
+    const end = `State ${state + 1}`;
+    const startIdx = fileContent.indexOf(start);
+    const endIdx = fileContent.indexOf(end);
+    const Text = fileContent.substring(startIdx, endIdx);
+    console.log("Text :", Text);
+    const lines = Text.split("\n");
+    for (const line of lines) {
+      // State 문장 삭제
+      if (line[0] !== "[") {
+        continue;
+      }
+      const parts = line.split(":");
+      const key = parts[0].trim();
+      const value = parseInt(parts[1].trim());
+      result.push({ key, value });
     }
-    const parts = line.split(":");
-    const key = parts[0].trim();
-    const value = parseInt(parts[1].trim());
-    result.push({ key, value });
   }
+  console.log("result", result);
   return result;
 }
 export function activate(context: vscode.ExtensionContext) {
@@ -179,11 +182,16 @@ function accessServer1(host: string) {
 
     link.on("data", data => {
       const decodedString = data.toString("utf-8");
+
       if (decodedString === "SuccessfullyParsed") {
-        stateNumber = "0";
+        stateNumber = [];
       } else {
-        stateNumber = decodedString.replace("white Terminal ", "").trim();
+        const extractedNumbers = decodedString.match(/\d+/g);
+        // stateNumber = decodedString.replace("white Terminal ", "").trim();
+        stateNumber = extractedNumbers ? extractedNumbers.map(Number) : [];
+        console.log("stateNumber", stateNumber);
       }
+
       candidates = readFile(stateNumber);
       console.log("name", candidates);
       console.log("서버에서 받은 데이터:", decodedString);
