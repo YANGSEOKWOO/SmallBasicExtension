@@ -30,8 +30,9 @@ const path = require("path");
 type Item = {
   key: string;
   value: number;
+  sortText: number;
 };
-
+function pretreat(item: string) {}
 /**
  * state값을 통해 DB에 있는 state번호의 candidate를 가져와 key value형식으로 배열로 반환하는 함수
  * @param {string} string: state값
@@ -62,7 +63,8 @@ function readFile(states: number[]) {
       const parts = line.split(":");
       const key = parts[0].trim();
       const value = parseInt(parts[1].trim());
-      result.push({ key, value });
+      const sortText = value;
+      result.push({ key, value, sortText });
     }
   }
   console.log("result", result);
@@ -78,6 +80,9 @@ export function activate(context: vscode.ExtensionContext) {
     disposable.dispose();
 
     candidates.sort((a, b) => b.value - a.value);
+    candidates.forEach((item, index) => {
+      item.sortText = index + 1; // 순위는 1부터 시작
+    });
     // 새로운 Completion 등록
     CompletionProvider = vscode.languages.registerCompletionItemProvider(
       "smallbasic",
@@ -86,12 +91,41 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.CompletionItem[] | vscode.CompletionList
         > {
           const CompletionItems: vscode.CompletionItem[] = [];
-          for (const { key, value } of candidates) {
-            const completion = new vscode.CompletionItem(key);
-            const completionDocs = new vscode.MarkdownString(value.toString());
-            completion.documentation = completionDocs;
-            CompletionItems.push(completion);
+          const targetStrings = ["[", "T", "N", "NT", "]", ","];
+
+          for (const { key, value, sortText } of candidates) {
+            let completionWord = key;
+            // targetStrings 삭제
+            targetStrings.forEach(targetString => {
+              while (completionWord.includes(targetString)) {
+                completionWord = completionWord.replace(targetString, "");
+              }
+            });
+            console.log("console.", completionWord);
+            if (/\bFor\b/.test(completionWord)) {
+              const forLoopSnippet = new vscode.SnippetString(
+                "For ${1:index} = ${2:lower} To ${3:upper} Step ${4:stepsize}\n" +
+                  "\t$0\n" +
+                  "EndFor"
+              );
+              const completion = new vscode.CompletionItem(
+                "For ID = Expr To Expr OptStep CRStmtCRs EndFor"
+              );
+              completion.insertText = forLoopSnippet;
+              completion.sortText = sortText.toString();
+              CompletionItems.push(completion);
+            } else {
+              const completion = new vscode.CompletionItem(completionWord);
+              completion.sortText = sortText.toString();
+              completion.filterText = "T";
+              const completionDocs = new vscode.MarkdownString(
+                value.toString()
+              );
+              completion.documentation = completionDocs;
+              CompletionItems.push(completion);
+            }
           }
+          // 만약 여기서 특정 아이템을 선택한다면
           return CompletionItems;
         },
       },
@@ -124,6 +158,18 @@ export function activate(context: vscode.ExtensionContext) {
   let test = vscode.commands.registerCommand("sb.test", () => {
     vscode.commands.executeCommand("editor.action.triggerSuggest");
   });
+  const snippetTestProvider = vscode.languages.registerCompletionItemProvider(
+    "smallbasic",
+    {
+      provideCompletionItems() {
+        const TextsnippetCompletion = new vscode.CompletionItem("Text");
+        TextsnippetCompletion.insertText = new vscode.SnippetString(
+          "console.log('${1:Hello, World!}');"
+        );
+        return [TextsnippetCompletion];
+      },
+    }
+  );
 
   context.subscriptions.push(disposable, hotKeyProvider, completionTest, test);
 }
@@ -184,7 +230,7 @@ function accessServer1(host: string) {
       const decodedString = data.toString("utf-8");
 
       if (decodedString === "SuccessfullyParsed") {
-        stateNumber = [];
+        stateNumber = [0];
       } else {
         const extractedNumbers = decodedString.match(/\d+/g);
         // stateNumber = decodedString.replace("white Terminal ", "").trim();
@@ -193,7 +239,6 @@ function accessServer1(host: string) {
       }
 
       candidates = readFile(stateNumber);
-      console.log("name", candidates);
       console.log("서버에서 받은 데이터:", decodedString);
       vscode.commands.executeCommand("sb.subhotkey");
     });
