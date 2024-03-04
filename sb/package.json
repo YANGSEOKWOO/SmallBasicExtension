@@ -19,6 +19,14 @@
         "key": "ctrl+space",
         "command": "sb.hotkey",
         "when": "editorTextFocus && !suggestWidgetVisible"
+      },
+      {
+        "key": "ctrl+p",
+        "command": "editor.action.insertSnippet",
+        "when": "editorTextFocus",
+        "args": {
+          "snippet": "console.log($1)$0"
+        }
       }
     ],
     "commands": [

@@ -30,7 +30,7 @@ const path = require("path");
 type Item = {
   key: string;
   value: number;
-  sortText: number;
+  sortText: string;
 };
 function pretreat(item: string) {}
 /**
@@ -63,13 +63,14 @@ function readFile(states: number[]) {
       const parts = line.split(":");
       const key = parts[0].trim();
       const value = parseInt(parts[1].trim());
-      const sortText = value;
+      const sortText = value.toString();
       result.push({ key, value, sortText });
     }
   }
   console.log("result", result);
   return result;
 }
+
 export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "sb" is now active!');
 
@@ -81,13 +82,17 @@ export function activate(context: vscode.ExtensionContext) {
 
     candidates.sort((a, b) => b.value - a.value);
     candidates.forEach((item, index) => {
-      item.sortText = index + 1; // 순위는 1부터 시작
+      item.sortText = (index + 1).toString(); // 순위는 1부터 시작
     });
+    console.log("candidats", candidates);
     // 새로운 Completion 등록
     CompletionProvider = vscode.languages.registerCompletionItemProvider(
       "smallbasic",
       {
-        provideCompletionItems(): vscode.ProviderResult<
+        provideCompletionItems(
+          document: vscode.TextDocument,
+          position: vscode.Position
+        ): vscode.ProviderResult<
           vscode.CompletionItem[] | vscode.CompletionList
         > {
           const CompletionItems: vscode.CompletionItem[] = [];
@@ -101,7 +106,7 @@ export function activate(context: vscode.ExtensionContext) {
                 completionWord = completionWord.replace(targetString, "");
               }
             });
-            console.log("console.", completionWord);
+            console.log(completionWord);
             if (/\bFor\b/.test(completionWord)) {
               const forLoopSnippet = new vscode.SnippetString(
                 "For ${1:index} = ${2:lower} To ${3:upper} Step ${4:stepsize}\n" +
@@ -111,25 +116,36 @@ export function activate(context: vscode.ExtensionContext) {
               const completion = new vscode.CompletionItem(
                 "For ID = Expr To Expr OptStep CRStmtCRs EndFor"
               );
+              const editor = vscode.window.activeTextEditor;
+              if (editor === undefined) {
+                return;
+              }
+              const currentPosition = editor.selection.active;
               completion.insertText = forLoopSnippet;
+              completion.range = new vscode.Range(
+                currentPosition,
+                currentPosition
+              );
               completion.sortText = sortText.toString();
               CompletionItems.push(completion);
             } else {
               const completion = new vscode.CompletionItem(completionWord);
-              completion.sortText = sortText.toString();
-              completion.filterText = "T";
+
+              const linePrefix = document
+                .lineAt(position)
+                .text.slice(0, position.character);
+              completion.filterText = linePrefix;
               const completionDocs = new vscode.MarkdownString(
                 value.toString()
               );
-              completion.documentation = completionDocs;
+              completion.sortText = sortText.toString();
               CompletionItems.push(completion);
             }
           }
           // 만약 여기서 특정 아이템을 선택한다면
           return CompletionItems;
         },
-      },
-      "."
+      }
     );
     // Triggest Suggest 실행
     vscode.commands.executeCommand("editor.action.triggerSuggest");
