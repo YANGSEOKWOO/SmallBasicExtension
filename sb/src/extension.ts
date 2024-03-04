@@ -1,13 +1,8 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-
-// 추가항목 Text라는 함수?
-// 그에 따른 GetCharacter
 import { WebSocket } from "ws";
 import * as vscode from "vscode";
 import * as net from "net";
-import * as readline from "readline";
 import * as fs from "fs";
+
 // document : VSCode에서 열려있는 텍스트 문서
 // position : 현재 커서의 위치
 // token : 작업이 취소되었는지 여부
@@ -19,9 +14,7 @@ const PORT = 50000;
 let socket: WebSocket;
 
 let link: net.Socket | null;
-let input: readline.ReadLine;
-let output: NodeJS.WritableStream;
-let connect: boolean;
+
 let CompletionProvider: any;
 let stateNumber: number[] | null;
 let candidates: Item[];
@@ -32,13 +25,13 @@ type Item = {
   value: number;
   sortText: string;
 };
-function pretreat(item: string) {}
+
 /**
  * state값을 통해 DB에 있는 state번호의 candidate를 가져와 key value형식으로 배열로 반환하는 함수
  * @param {string} string: state값
  * @returns key value 형태의 candidates배열 key: Completion name, value: frequency
  */
-function readFile(states: number[]) {
+function getCandidatesForStates(states: number[]) {
   console.log("_dirname", __dirname);
   const fileName = path.join(
     __dirname,
@@ -75,81 +68,69 @@ export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "sb" is now active!');
 
   // 서버와 통신 후 받은 candidates를 가지고 후보목록을 보여주는 Command
-  const completionTest = vscode.commands.registerCommand("sb.subhotkey", () => {
-    // 기존의 Completion 삭제
-    const disposable = vscode.Disposable.from(CompletionProvider);
-    disposable.dispose();
+  const completionCommand = vscode.commands.registerCommand(
+    "sb.subhotkey",
+    () => {
+      // 기존의 Completion 삭제
+      const disposable = vscode.Disposable.from(CompletionProvider);
+      disposable.dispose();
 
-    candidates.sort((a, b) => b.value - a.value);
-    candidates.forEach((item, index) => {
-      item.sortText = (index + 1).toString().padStart(3, "0"); // 순위는 1부터 시작
-    });
-    console.log("candidats", candidates);
-    // 새로운 Completion 등록
-    CompletionProvider = vscode.languages.registerCompletionItemProvider(
-      "smallbasic",
-      {
-        provideCompletionItems(
-          document: vscode.TextDocument,
-          position: vscode.Position
-        ): vscode.ProviderResult<
-          vscode.CompletionItem[] | vscode.CompletionList
-        > {
-          const CompletionItems: vscode.CompletionItem[] = [];
-          const targetStrings = ["[", "T", "N", "NT", "]", ","];
+      // 후보군에 Ranking 설정을 위한 sortText값 설정
+      candidates.sort((a, b) => b.value - a.value);
+      candidates.forEach((item, index) => {
+        item.sortText = (index + 1).toString().padStart(3, "0"); // 순위는 1부터 시작
+      });
 
-          for (const { key, value, sortText } of candidates) {
-            let completionWord = key;
-            // targetStrings 삭제
-            targetStrings.forEach(targetString => {
-              while (completionWord.includes(targetString)) {
-                completionWord = completionWord.replace(targetString, "");
-              }
-            });
-            console.log(completionWord);
-            if (/\bFor\b/.test(completionWord)) {
-              const forLoopSnippet = new vscode.SnippetString(
-                "For ${1:index} = ${2:lower} To ${3:upper} Step ${4:stepsize}\n" +
-                  "\t$0\n" +
-                  "EndFor"
-              );
-              const completion = new vscode.CompletionItem(
-                "For ID = Expr To Expr OptStep CRStmtCRs EndFor"
-              );
-              const editor = vscode.window.activeTextEditor;
-              if (editor === undefined) {
-                return;
-              }
-              const currentPosition = editor.selection.active;
-              completion.insertText = forLoopSnippet;
-              completion.range = new vscode.Range(
-                currentPosition,
-                currentPosition
-              );
-              completion.sortText = sortText.toString();
-              CompletionItems.push(completion);
-            } else {
+      // 새로운 Completion 등록
+      CompletionProvider = vscode.languages.registerCompletionItemProvider(
+        "smallbasic",
+        {
+          provideCompletionItems(
+            document: vscode.TextDocument,
+            position: vscode.Position
+          ): vscode.ProviderResult<
+            vscode.CompletionItem[] | vscode.CompletionList
+          > {
+            const CompletionItems: vscode.CompletionItem[] = [];
+            const targetStrings = ["[", "T", "N", "NT", "]", ","];
+
+            // 후보군을 completion에 등록하는 절차
+            for (const { key, value, sortText } of candidates) {
+              let completionWord = key;
+
+              // targetStrings 삭제 (ex. N, NT, [,])
+              targetStrings.forEach(targetString => {
+                while (completionWord.includes(targetString)) {
+                  completionWord = completionWord.replace(targetString, "");
+                }
+              });
+
+              console.log(completionWord);
+
               const completion = new vscode.CompletionItem(completionWord);
 
               const linePrefix = document
                 .lineAt(position)
                 .text.slice(0, position.character);
+              // prefix 설정
               completion.filterText = linePrefix;
+
+              // docs 설정 : Rank
               const completionDocs = new vscode.MarkdownString(
                 value.toString()
               );
               completion.sortText = sortText.toString();
+
               CompletionItems.push(completion);
             }
-          }
-          // 만약 여기서 특정 아이템을 선택한다면
-          return CompletionItems;
-        },
-      }
-    );
-    // Triggest Suggest 실행
-    vscode.commands.executeCommand("editor.action.triggerSuggest");
-  });
+            return CompletionItems;
+          },
+        }
+      );
+      // Triggest Suggest 실행
+      vscode.commands.executeCommand("editor.action.triggerSuggest");
+    }
+  );
 
   // hot key를 누르면 시작되는 command
   // Server에게 값을 준다.
@@ -168,26 +149,11 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
 
-  let disposable = vscode.commands.registerCommand("sb.helloWorld", () => {
-    vscode.window.showInformationMessage("Hello World from SB!");
-  });
-  let test = vscode.commands.registerCommand("sb.test", () => {
+  let codeTrigger = vscode.commands.registerCommand("sb.Triggertest", () => {
     vscode.commands.executeCommand("editor.action.triggerSuggest");
   });
-  const snippetTestProvider = vscode.languages.registerCompletionItemProvider(
-    "smallbasic",
-    {
-      provideCompletionItems() {
-        const TextsnippetCompletion = new vscode.CompletionItem("Text");
-        TextsnippetCompletion.insertText = new vscode.SnippetString(
-          "console.log('${1:Hello, World!}');"
-        );
-        return [TextsnippetCompletion];
-      },
-    }
-  );
 
-  context.subscriptions.push(disposable, hotKeyProvider, completionTest, test);
+  context.subscriptions.push(hotKeyProvider, completionCommand, codeTrigger);
 }
 
 /**
@@ -227,6 +193,7 @@ async function serverConnect(cursorindex: number, textArea: string) {
   // 구문 완성 결과를 문사열로 받기
   accessServer1("localhost");
 }
+
 /**
  * 서버에서 데이터를 받으면, state값으로 DB값을 읽어온 후 sb.completion명령어를 실행한다.
  * @param {string} 포트번호
@@ -249,12 +216,11 @@ function accessServer1(host: string) {
         stateNumber = [0];
       } else {
         const extractedNumbers = decodedString.match(/\d+/g);
-        // stateNumber = decodedString.replace("white Terminal ", "").trim();
         stateNumber = extractedNumbers ? extractedNumbers.map(Number) : [];
         console.log("stateNumber", stateNumber);
       }
 
-      candidates = readFile(stateNumber);
+      candidates = getCandidatesForStates(stateNumber);
       console.log("서버에서 받은 데이터:", decodedString);
       vscode.commands.executeCommand("sb.subhotkey");
     });
@@ -266,11 +232,10 @@ function accessServer1(host: string) {
     // 연결이 거부될 경우 예외 처리
     console.log("서버 연결 거부");
     console.error(error.message);
-    connect = false;
   }
 }
 /**
- * 연결을 종료하는 함수
+ * 서버연결을 종료하는 함수
  */
 function closingConnecting1() {
   try {
@@ -286,108 +251,3 @@ function closingConnecting1() {
 
 // This method is called when your extension is deactivated
 export function deactivate() {}
-
-//  // Text Object Completion
-//  const TextsnippetCompletion = new vscode.CompletionItem("Text");
-//  // TextsnippetCompletion.insertText = new vscode.SnippetString("Text");
-//  const Textdocs: any = new vscode.MarkdownString(
-//    "Text 함수입니다. [link](com) ."
-//  );
-//  TextsnippetCompletion.documentation = Textdocs;
-//  Textdocs.baseUri = vscode.Uri.parse("https://naver");
-
-//  // TextWindow에 대한 Completion
-//  const TextWindowSnippetCompletion = new vscode.CompletionItem(
-//    "TextWindow"
-//  );
-//  // TextWindowSnippetCompletion.insertText = new vscode.SnippetString(
-//  //   "TextWindow"
-//  // );
-//  const docs: any = new vscode.MarkdownString("Text Window 객체");
-
-//  return [TextsnippetCompletion, TextWindowSnippetCompletion];
-
-// TextWindow에 대한 메서드 정의
-// const TextWindowMethodprovider =
-//   vscode.languages.registerCompletionItemProvider(
-//     "smallbasic",
-//     {
-//       provideCompletionItems(
-//         document: vscode.TextDocument,
-//         position: vscode.Position
-//       ) {
-//         // return [...textWindowCompletionItems, ...textCompletionItems];
-//         // TextWindow 메서드 및 속성에 대한 코드 완성 항목 생성
-//         const textWindowCompletionItems: vscode.CompletionItem[] = [
-//           new vscode.CompletionItem(
-//             "WriteLine",
-//             vscode.CompletionItemKind.Method
-//           ),
-//           new vscode.CompletionItem(
-//             "Write",
-//             vscode.CompletionItemKind.Method
-//           ),
-//           new vscode.CompletionItem("Read", vscode.CompletionItemKind.Method),
-//           new vscode.CompletionItem(
-//             "ReadNumber",
-//             vscode.CompletionItemKind.Method
-//           ),
-//         ];
-//         const textCompletionItems: vscode.CompletionItem[] = [
-//           new vscode.CompletionItem(
-//             "Append",
-//             vscode.CompletionItemKind.Method
-//           ),
-//           new vscode.CompletionItem(
-//             "GetLength",
-//             vscode.CompletionItemKind.Method
-//           ),
-//           new vscode.CompletionItem(
-//             "IsSubText",
-//             vscode.CompletionItemKind.Method
-//           ),
-//           new vscode.CompletionItem(
-//             "GetCharacter",
-//             vscode.CompletionItemKind.Method
-//           ),
-//         ];
-
-//         const linePrefix = document
-//           .lineAt(position)
-//           .text.slice(0, position.character);
-//         if (linePrefix.endsWith("Text.")) {
-//           return textCompletionItems;
-//         } else if (linePrefix.endsWith("TextWindow.")) {
-//           return textWindowCompletionItems;
-//         }
-//         return undefined;
-//       },
-//     },
-//     "."
-//   );
-
-// const variableCompletionProvider =
-//   vscode.languages.registerCompletionItemProvider("smallbasic", {
-//     provideCompletionItems(
-//       document: vscode.TextDocument,
-//       position: vscode.Position
-//     ) {
-//       const completionItems: vscode.CompletionItem[] = [];
-
-//       const documentText = document.getText();
-//       const variableFound = /\b([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g;
-//       let match;
-//       while ((match = variableFound.exec(documentText)) !== null) {
-//         const variableName = match[1];
-
-//         // 각 변수에 대한 코드 완성항목 생성
-//         const variableCompletionItem = new vscode.CompletionItem(
-//           variableName,
-//           vscode.CompletionItemKind.Variable
-//         );
-//         completionItems.push(variableCompletionItem);
-//       }
-
-//       return completionItems;
-//     },
-//   });

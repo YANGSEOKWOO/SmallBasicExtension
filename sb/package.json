@@ -43,8 +43,8 @@
         "title": "subhotkey"
       },
       {
-        "command": "sb.test",
-        "title": "test"
+        "command": "sb.Triggertest",
+        "title": "Triggertest"
       }
     ],
     "languages": [
