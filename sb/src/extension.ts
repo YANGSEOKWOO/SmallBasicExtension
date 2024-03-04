@@ -117,8 +117,9 @@ export function activate(context: vscode.ExtensionContext) {
 
               // docs 설정 : Rank
               const completionDocs = new vscode.MarkdownString(
-                value.toString()
+                "빈도수 : " + value
               );
+              completion.documentation = completionDocs;
               completion.sortText = sortText.toString();
 
               CompletionItems.push(completion);
