@@ -82,7 +82,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     candidates.sort((a, b) => b.value - a.value);
     candidates.forEach((item, index) => {
-      item.sortText = (index + 1).toString(); // 순위는 1부터 시작
+      item.sortText = (index + 1).toString().padStart(3, "0"); // 순위는 1부터 시작
     });
     console.log("candidats", candidates);
     // 새로운 Completion 등록
