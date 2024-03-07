@@ -104,17 +104,16 @@ export function activate(context: vscode.ExtensionContext) {
                   completionWord = completionWord.replace(targetString, "");
                 }
               });
-
+              const documentText = document.getText();
+              const variableFound = /\b([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g;
+              let match;
+              let variableNames = [];
+              while ((match = variableFound.exec(documentText)) !== null) {
+                variableNames.push(match[1]);
+              }
+              console.log("variableName:", variableNames);
               console.log(completionWord);
               if (/\bFor\b/.test(completionWord)) {
-                const documentText = document.getText();
-                const variableFound = /\b([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g;
-                let match;
-                let variableNames = [];
-                while ((match = variableFound.exec(documentText)) !== null) {
-                  variableNames.push(match[1]);
-                }
-                console.log("variableName:", variableNames);
                 const forLoopSnippet = new vscode.SnippetString(
                   `For \${1|${variableNames.join(
                     ","
@@ -135,6 +134,14 @@ export function activate(context: vscode.ExtensionContext) {
                 CompletionItems.push(completion);
               } else {
                 const completion = new vscode.CompletionItem(completionWord);
+                const snippetText = new vscode.SnippetString(
+                  `${completionWord.replace(
+                    /\bID\b/g,
+                    "${1|" + variableNames.join(",") + "|}"
+                  )}`
+                );
+                console.log("snippetText: ", snippetText);
+                completion.insertText = snippetText;
 
                 const linePrefix = document
                   .lineAt(position)
