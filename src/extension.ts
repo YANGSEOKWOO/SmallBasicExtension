@@ -102,6 +102,7 @@ export function activate(context: vscode.ExtensionContext) {
               targetStrings.forEach(targetString => {
                 while (completionWord.includes(targetString)) {
                   completionWord = completionWord.replace(targetString, "");
+                  completionWord;
                 }
               });
               const documentText = document.getText();
@@ -133,11 +134,16 @@ export function activate(context: vscode.ExtensionContext) {
                 completion.sortText = sortText.toString();
                 CompletionItems.push(completion);
               } else {
-                const completion = new vscode.CompletionItem(completionWord);
+                const completion = new vscode.CompletionItem(
+                  completionWord.trim()
+                );
+                const trimmedCompletionWord = completionWord.trim();
                 const snippetText = new vscode.SnippetString(
-                  `${completionWord.replace(
+                  `${trimmedCompletionWord.replace(
                     /\bID\b/g,
-                    "${1|" + variableNames.join(",") + "|}"
+                    variableNames.length > 0
+                      ? "${1|" + variableNames.join(",") + "|}"
+                      : "${1:ID}"
                   )}`
                 );
                 console.log("snippetText: ", snippetText);
