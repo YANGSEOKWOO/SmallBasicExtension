@@ -106,23 +106,51 @@ export function activate(context: vscode.ExtensionContext) {
               });
 
               console.log(completionWord);
+              if (/\bFor\b/.test(completionWord)) {
+                const documentText = document.getText();
+                const variableFound = /\b([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g;
+                let match;
+                let variableNames = [];
+                while ((match = variableFound.exec(documentText)) !== null) {
+                  variableNames.push(match[1]);
+                }
+                console.log("variableName:", variableNames);
+                const forLoopSnippet = new vscode.SnippetString(
+                  `For \${1|${variableNames.join(
+                    ","
+                  )}|} = \${2:lower} To \${3:upper} Step \${4:stepsize}\n` +
+                    `\t$0\n` +
+                    "EndFor" +
+                    "${TM_FILENAME/(.*)\\..+$/$1/}"
+                );
+                const completion = new vscode.CompletionItem(
+                  "For ID = Expr To Expr OptStep CRStmtCRs EndFor"
+                );
+                const completionDocs = new vscode.MarkdownString(
+                  "빈도수 : " + value
+                );
+                completion.documentation = completionDocs;
+                completion.insertText = forLoopSnippet;
+                completion.sortText = sortText.toString();
+                CompletionItems.push(completion);
+              } else {
+                const completion = new vscode.CompletionItem(completionWord);
 
-              const completion = new vscode.CompletionItem(completionWord);
+                const linePrefix = document
+                  .lineAt(position)
+                  .text.slice(0, position.character);
+                // prefix 설정
+                completion.filterText = linePrefix;
 
-              const linePrefix = document
-                .lineAt(position)
-                .text.slice(0, position.character);
-              // prefix 설정
-              completion.filterText = linePrefix;
+                // docs 설정 : Rank
+                const completionDocs = new vscode.MarkdownString(
+                  "빈도수 : " + value
+                );
+                completion.documentation = completionDocs;
+                completion.sortText = sortText.toString();
 
-              // docs 설정 : Rank
-              const completionDocs = new vscode.MarkdownString(
-                "빈도수 : " + value
-              );
-              completion.documentation = completionDocs;
-              completion.sortText = sortText.toString();
-
-              CompletionItems.push(completion);
+                CompletionItems.push(completion);
+              }
             }
             return CompletionItems;
           },
