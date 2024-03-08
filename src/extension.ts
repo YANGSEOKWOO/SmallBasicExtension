@@ -100,11 +100,15 @@ export function activate(context: vscode.ExtensionContext) {
 
               // targetStrings 삭제 (ex. N, NT, [,])
               completionWord = completionWord
-                .replace(/\[|\]|,|T|NT/g, "")
-                .replace(/\bNT\b/g, "")
-                .replace(/\s+/g, " ")
-                .replace(/\s+\./g, ".")
-                .replace(/\.\s+/g, ".");
+                .replace(/\[|\]/g, "") // 대괄호 삭제
+                .replace(/,/g, "") // 쉼표 삭제
+                .replace(/\s+\bT\b/g, " ") // 'T'를 공백으로 대체
+                .replace(/\bT\b/g, "") // 'T' 삭제
+                .replace(/\bNT\b/g, "") // 'NT' 삭제
+                .replace(/\s+/g, " ") // 여러 개의 공백을 1칸으로 변경
+                .replace(/\s+\./g, ".") // '.' 양옆의 공백 삭제
+                .replace(/\.\s+/g, ".") // '.' 양옆의 공백 삭제
+                .replace(/\bTO\b/g, " TO ");
 
               const documentText = document.getText();
               const variableFound = /\b([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g;
