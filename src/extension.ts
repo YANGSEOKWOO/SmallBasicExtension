@@ -154,6 +154,10 @@ export function activate(context: vscode.ExtensionContext) {
                   .lineAt(position)
                   .text.slice(0, position.character);
                 // prefix 설정
+                completion.range = new vscode.Range(
+                  position.with(undefined, 0),
+                  position
+                );
                 completion.filterText = linePrefix;
 
                 // docs 설정 : Rank
@@ -162,7 +166,7 @@ export function activate(context: vscode.ExtensionContext) {
                 );
                 completion.documentation = completionDocs;
                 completion.sortText = sortText.toString();
-
+                completion.insertText = linePrefix + completionWord;
                 CompletionItems.push(completion);
               }
             }
