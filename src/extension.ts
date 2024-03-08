@@ -99,12 +99,13 @@ export function activate(context: vscode.ExtensionContext) {
               let completionWord = key;
 
               // targetStrings 삭제 (ex. N, NT, [,])
-              targetStrings.forEach(targetString => {
-                while (completionWord.includes(targetString)) {
-                  completionWord = completionWord.replace(targetString, "");
-                  completionWord;
-                }
-              });
+              completionWord = completionWord
+                .replace(/\[|\]|,|T|NT/g, "")
+                .replace(/\bNT\b/g, "")
+                .replace(/\s+/g, " ")
+                .replace(/\s+\./g, ".")
+                .replace(/\.\s+/g, ".");
+
               const documentText = document.getText();
               const variableFound = /\b([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g;
               let match;
@@ -130,7 +131,7 @@ export function activate(context: vscode.ExtensionContext) {
                   "빈도수 : " + value
                 );
                 completion.documentation = completionDocs;
-                completion.insertText = forLoopSnippet;
+                // completion.insertText = forLoopSnippet;
                 completion.sortText = sortText.toString();
                 CompletionItems.push(completion);
               } else {
