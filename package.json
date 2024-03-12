@@ -19,24 +19,12 @@
         "key": "ctrl+space",
         "command": "sb.hotkey",
         "when": "editorTextFocus && !suggestWidgetVisible"
-      },
-      {
-        "key": "ctrl+p",
-        "command": "editor.action.insertSnippet",
-        "when": "editorTextFocus",
-        "args": {
-          "snippet": "console.log($1)$0"
-        }
       }
     ],
     "commands": [
       {
         "command": "sb.hotkey",
         "title": "hotkey"
-      },
-      {
-        "command": "sb.helloWorld",
-        "title": "Hello World"
       },
       {
         "command": "sb.subhotkey",
@@ -59,12 +47,6 @@
           ".smallbasic"
         ],
         "configuration": "./language-configuration.json"
-      }
-    ],
-    "snippets": [
-      {
-        "language": "smallbasic",
-        "path": "./snippets/smallbasic.snippets.json"
       }
     ],
     "grammars": [

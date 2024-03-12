@@ -11,16 +11,9 @@ import { SbSnippetGenerator } from "./sbSnippetGenerator";
 // sendMessage : 텍스트 길이
 // cursorindex : 커서 위치
 // textArea : 전체 텍스트
-const PORT = 50000;
-let socket: WebSocket;
-
-let link: net.Socket | null;
 
 let CompletionProvider: any;
-let stateNumber: number[] | null;
-let candidates: CompletionItem[];
 let sbData: CompletionItem[];
-const path = require("path");
 
 type CompletionItem = {
   key: string;
@@ -65,10 +58,12 @@ export function activate(context: vscode.ExtensionContext) {
                 .join(" ");
 
               if (linePrefix[lastIndex] == " ") {
-                completion.insertText = new vscode.SnippetString(placeholders);
+                completion.insertText = new vscode.SnippetString(
+                  placeholders.trim()
+                );
               } else {
                 completion.insertText = new vscode.SnippetString(
-                  linePrefix + placeholders
+                  (linePrefix + placeholders).trim()
                 );
               }
               completion.filterText = linePrefix;
