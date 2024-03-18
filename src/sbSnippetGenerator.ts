@@ -135,7 +135,7 @@ export class SbSnippetGenerator {
    */
   public closingConnecting1() {
     try {
-      if (link != null) {
+      if (link !== null) {
         console.log("연결종료");
         link.end();
         link = null;
@@ -164,5 +164,20 @@ export class SbSnippetGenerator {
     this.closingConnecting1();
 
     this.accessServer1("localhost");
+  }
+  public getInsertText(completionItem: string | vscode.CompletionItemLabel) {
+    // 문자열 단어로 분리
+    const itemString =
+      typeof completionItem === "string"
+        ? completionItem
+        : completionItem.label;
+    const words = itemString.split(" ");
+
+    // 각 단어에 TabStop을 추가하여 새로운 문자열 생성
+    const placeholders = words
+      .map((word, index) => `\${${index + 1}:${word}}`)
+      .join(" ");
+    console.log("placeholders", placeholders);
+    return placeholders;
   }
 }
