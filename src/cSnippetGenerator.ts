@@ -135,7 +135,7 @@ export class cSnippetGenerator {
    */
   public closingConnecting1() {
     try {
-      if (link != null) {
+      if (link !== null) {
         console.log("연결종료");
         link.end();
         link = null;

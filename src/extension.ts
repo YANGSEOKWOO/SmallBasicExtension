@@ -81,11 +81,13 @@ export function activate(context: vscode.ExtensionContext) {
             return CompletionItems;
           },
           resolveCompletionItem(item: vscode.CompletionItem) {
+            console.log("resolve함수 실행");
             if (item) {
               item.insertText = new vscode.SnippetString(
                 sbSnippetGenerator.getInsertText(item.label)
               );
             }
+            // item.insertText = new vscode.SnippetString("");
             return item;
           },
         }
@@ -122,24 +124,25 @@ export function activate(context: vscode.ExtensionContext) {
           backCursorText
         );
 
-        // const cSnippetGenerator = new SbSnippetGenerator(
-        //   frontCursorTextLength,
-        //   frontCursorText,
-        //   backCursorText
-        // );
+        const cSnippetGenerator = new SbSnippetGenerator(
+          frontCursorTextLength,
+          frontCursorText,
+          backCursorText
+        );
 
         let dataE;
-        dataE = sbSnippetGenerator.getCompletionItems();
-        sbSnippetGenerator.onDataReceived((data: any) => {
-          sbData = data;
-          vscode.commands.executeCommand("extension.subhotkey");
-        });
-        console.log("dataE", dataE);
-        // cSnippetGenerator.onDataReceived((data: any) => {
+        // dataE = sbSnippetGenerator.getCompletionItems();
+        dataE = cSnippetGenerator.getCompletionItems();
+        // sbSnippetGenerator.onDataReceived((data: any) => {
         //   sbData = data;
-        //   console.log("데이터 받음");
         //   vscode.commands.executeCommand("extension.subhotkey");
         // });
+        console.log("dataE", dataE);
+        cSnippetGenerator.onDataReceived((data: any) => {
+          sbData = data;
+          console.log("데이터 받음");
+          vscode.commands.executeCommand("extension.subhotkey");
+        });
       } else {
         console.log("현재 열려있는 편집기가 없습니다.");
       }

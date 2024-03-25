@@ -172,10 +172,17 @@ export class SbSnippetGenerator {
         ? completionItem
         : completionItem.label;
     const words = itemString.split(" ");
+    console.log("words:", words);
 
     // 각 단어에 TabStop을 추가하여 새로운 문자열 생성
     const placeholders = words
-      .map((word, index) => `\${${index + 1}:${word}}`)
+      .map((word, index) => {
+        if (word === "CRStmtCRs") {
+          return `\n \${${index + 1}:body} \n`;
+        } else {
+          return `\${${index + 1}:${word}}`;
+        }
+      })
       .join(" ");
     console.log("placeholders", placeholders);
     return placeholders;
