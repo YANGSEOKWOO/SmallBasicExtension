@@ -15,6 +15,7 @@ import { cSnippetGenerator } from "./cSnippetGenerator";
 let CompletionProvider: any;
 let sbData: CompletionItem[];
 let sbSnippetGenerator: SbSnippetGenerator;
+let linePrefixTest: string;
 
 type CompletionItem = {
   key: string;
@@ -23,11 +24,9 @@ type CompletionItem = {
 };
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('Congratulations, your extension "sb" is now active!');
-  const testCommand = vscode.commands.registerCommand("sb.test", () => {
-    console.log("작동완료");
-  });
+  console.log("VSC Extension 실행");
   sbSnippetGenerator = new SbSnippetGenerator("", "", "");
+
   // 서버와 통신 후 받은 candidates를 가지고 후보목록을 보여주는 Command
   const completionCommand = vscode.commands.registerCommand(
     "extension.subhotkey",
@@ -50,10 +49,10 @@ export function activate(context: vscode.ExtensionContext) {
             for (const { key, value, sortText } of sbData) {
               const completion = new vscode.CompletionItem(key.trim());
               console.log("completion 값:", completion);
-              const linePrefix = document
+              linePrefixTest = document
                 .lineAt(position)
                 .text.slice(0, position.character);
-              const lastIndex = linePrefix.length - 1;
+              const lastIndex = linePrefixTest.length - 1;
               const words = key.split(" ");
 
               // 각 단어에 TabStop 추가
@@ -70,7 +69,7 @@ export function activate(context: vscode.ExtensionContext) {
               //     (linePrefix + placeholders).trim()
               //   );
               // }
-              completion.filterText = linePrefix;
+              // completion.filterText = linePrefix;
               completion.sortText = sortText;
               const completionDocs = new vscode.MarkdownString(
                 "빈도수 : " + value
@@ -82,7 +81,23 @@ export function activate(context: vscode.ExtensionContext) {
           },
           resolveCompletionItem(item: vscode.CompletionItem) {
             console.log("resolve함수 실행");
+
             if (item) {
+              const lastIndex = linePrefixTest.length - 1;
+              // linePrefix : 치고있는 코드가 없는경우
+              if (linePrefixTest[lastIndex] === " ") {
+                item.insertText = new vscode.SnippetString(
+                  sbSnippetGenerator.getInsertText(item.label)
+                );
+              } else {
+                // 치고있는 코드가 있는 경우, 그 값 포함하여 insertText
+                item.insertText = new vscode.SnippetString(
+                  (
+                    linePrefixTest +
+                    sbSnippetGenerator.getInsertText(item.label)
+                  ).trim()
+                );
+              }
               item.insertText = new vscode.SnippetString(
                 sbSnippetGenerator.getInsertText(item.label)
               );
@@ -107,6 +122,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (activeEditor) {
         // 현재 열려있는 편집기의 문서 가져오기
         const document = activeEditor.document;
+
         // 커서 위치 가져오기
         const cursorPosition = activeEditor.selection.active;
         const cursorOffset = document.offsetAt(cursorPosition);
@@ -124,25 +140,25 @@ export function activate(context: vscode.ExtensionContext) {
           backCursorText
         );
 
-        const cSnippetGenerator = new SbSnippetGenerator(
-          frontCursorTextLength,
-          frontCursorText,
-          backCursorText
-        );
+        // const cSnippetGenerator = new SbSnippetGenerator(
+        //   frontCursorTextLength,
+        //   frontCursorText,
+        //   backCursorText
+        // );
 
         let dataE;
-        // dataE = sbSnippetGenerator.getCompletionItems();
-        dataE = cSnippetGenerator.getCompletionItems();
-        // sbSnippetGenerator.onDataReceived((data: any) => {
-        //   sbData = data;
-        //   vscode.commands.executeCommand("extension.subhotkey");
-        // });
-        console.log("dataE", dataE);
-        cSnippetGenerator.onDataReceived((data: any) => {
+        dataE = sbSnippetGenerator.getCompletionItems();
+        // dataE = cSnippetGenerator.getCompletionItems();
+        sbSnippetGenerator.onDataReceived((data: any) => {
           sbData = data;
-          console.log("데이터 받음");
           vscode.commands.executeCommand("extension.subhotkey");
         });
+        console.log("dataE", dataE);
+        // cSnippetGenerator.onDataReceived((data: any) => {
+        //   sbData = data;
+        //   console.log("데이터 받음");
+        //   vscode.commands.executeCommand("extension.subhotkey");
+        // });
       } else {
         console.log("현재 열려있는 편집기가 없습니다.");
       }
@@ -156,12 +172,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  context.subscriptions.push(
-    hotKeyProvider,
-    completionCommand,
-    codeTrigger,
-    testCommand
-  );
+  context.subscriptions.push(hotKeyProvider, completionCommand, codeTrigger);
 }
 
 // This method is called when your extension is deactivated

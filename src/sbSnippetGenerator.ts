@@ -30,6 +30,7 @@ export class SbSnippetGenerator {
     this.frontCursorText = frontCursorText;
     this.backCursorText = backCursorText;
   }
+
   public getCandidatesForStates(states: number[]) {
     console.log("_dirname", __dirname);
     const fileName = path.join(
@@ -144,27 +145,37 @@ export class SbSnippetGenerator {
       console.error(error.message);
     }
   }
+  // sbparser서버에 전달해야하는 값을 전달해주는 함수
   public getCompletionItems() {
     if (link === null) {
       return;
     }
     this.accessServer1("localhost");
     link.write(`${this.frontCursorTextLength}`);
+    console.log("커서 앞 텍스트 길이 :", this.frontCursorTextLength);
     link.end();
     this.closingConnecting1();
 
     this.accessServer1("localhost");
     link.write(`${this.frontCursorText}`);
+    console.log("커서 앞 텍스트 :", this.frontCursorText);
     link.end();
     this.closingConnecting1();
 
     this.accessServer1("localhost");
     link.write(`${this.backCursorText}`);
+    console.log("뒤 텍스트 :", this.backCursorText);
     link.end();
     this.closingConnecting1();
 
     this.accessServer1("localhost");
   }
+
+  /**
+   * completionItem을 받아, SmallBasic 문법에 맞춘 code snippet을 반환하는 함수
+   * @param completionItem
+   * @returns placeholders
+   */
   public getInsertText(completionItem: string | vscode.CompletionItemLabel) {
     // 문자열 단어로 분리
     const itemString =
