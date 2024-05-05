@@ -187,14 +187,36 @@ class SbSnippetGenerator {
         // 각 단어에 TabStop을 추가하여 새로운 문자열 생성
         const placeholders = words
             .map((word, index) => {
-            if (word === "CRStmtCRs") {
-                return `\n \${${index + 1}:body} \n`;
+            let placeholder;
+            switch (word) {
+                case "CR":
+                    placeholder = `\n`;
+                    break;
+                case "TheRest":
+                    placeholder = "";
+                    break;
+                case "OrExpr":
+                    placeholder = `\${${index + 1}:OR}`;
+                    break;
+                case "AndExpr":
+                    placeholder = `\${${index + 1}:AND}`;
+                    break;
+                case "EqNeqExpr":
+                    placeholder = `\${${index + 1}:==}`;
+                    break;
+                case "OptStep":
+                    placeholder = `\${${index + 1}:Step}`;
+                    break;
+                case "CRStmtCRs":
+                    placeholder = `\n\${${index + 1}:body}\n`;
+                    break;
+                default:
+                    placeholder = `\${${index + 1}:${word}}`;
             }
-            else {
-                return `\${${index + 1}:${word}}`;
-            }
+            // 해당 원소에 \n이 포함되어 있지 않으면 공백을 추가
+            return placeholder.includes("\n") ? placeholder : placeholder + " ";
         })
-            .join(" ");
+            .join("");
         console.log("placeholders", placeholders);
         return placeholders;
     }
