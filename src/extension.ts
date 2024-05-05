@@ -1,9 +1,7 @@
 import { WebSocket } from "ws";
 import * as vscode from "vscode";
-import * as net from "net";
-import * as fs from "fs";
+
 import { SbSnippetGenerator } from "./sbSnippetGenerator";
-import { cSnippetGenerator } from "./cSnippetGenerator";
 // document : VSCode에서 열려있는 텍스트 문서
 // position : 현재 커서의 위치
 // token : 작업이 취소되었는지 여부
@@ -13,9 +11,9 @@ import { cSnippetGenerator } from "./cSnippetGenerator";
 // textArea : 전체 텍스트
 
 let CompletionProvider: any;
-let sbData: CompletionItem[];
+let candidatesData: CompletionItem[];
 let sbSnippetGenerator: SbSnippetGenerator;
-let linePrefixTest: string;
+let linePrefix: string;
 
 type CompletionItem = {
   key: string;
@@ -37,7 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       // 새로운 Completion 등록
       CompletionProvider = vscode.languages.registerCompletionItemProvider(
-        ["smallbasic", "c"],
+        ["smallbasic"],
         {
           provideCompletionItems(
             document: vscode.TextDocument,
@@ -45,47 +43,38 @@ export function activate(context: vscode.ExtensionContext) {
           ): vscode.ProviderResult<
             vscode.CompletionItem[] | vscode.CompletionList
           > {
-            const CompletionItems: vscode.CompletionItem[] = [];
-            for (const { key, value, sortText } of sbData) {
+            const completionItems: vscode.CompletionItem[] = [];
+            for (const { key, value, sortText } of candidatesData) {
+              // completion : candidate 하나를 의미한다.
               const completion = new vscode.CompletionItem(key.trim());
               console.log("completion 값:", completion);
-              linePrefixTest = document
+
+              // 사용자의 커서위치 전~ 띄어쓰기 까지의 값
+              // ex) 'IF a = 10' 이라면, 10이 된다, 'IF a = 10 '이라면, ''이 된다.
+              linePrefix = document
                 .lineAt(position)
                 .text.slice(0, position.character);
-              const lastIndex = linePrefixTest.length - 1;
-              const words = key.split(" ");
 
-              // 각 단어에 TabStop 추가
-              const placeholders = words
-                .map((word, index) => `\${${index + 1}:${word}}`)
-                .join(" ");
-
-              // if (linePrefix[lastIndex] == " ") {
-              //   completion.insertText = new vscode.SnippetString(
-              //     placeholders.trim()
-              //   );
-              // } else {
-              //   completion.insertText = new vscode.SnippetString(
-              //     (linePrefix + placeholders).trim()
-              //   );
-              // }
-              // completion.filterText = linePrefix;
+              // 구문후보군들을 빈도순으로 정렬하기 위한 sortText
               completion.sortText = sortText;
+
+              // 각 구문부호군에 빈도수를 Docs로 출력하도록 설정
               const completionDocs = new vscode.MarkdownString(
                 "빈도수 : " + value
               );
               completion.documentation = completionDocs;
-              CompletionItems.push(completion);
+              completionItems.push(completion);
             }
-            return CompletionItems;
+            return completionItems;
           },
           resolveCompletionItem(item: vscode.CompletionItem) {
             console.log("resolve함수 실행");
 
             if (item) {
-              const lastIndex = linePrefixTest.length - 1;
+              const lastIndex = linePrefix.length - 1;
               // linePrefix : 치고있는 코드가 없는경우
-              if (linePrefixTest[lastIndex] === " ") {
+              if (linePrefix[lastIndex] === " ") {
+                // inserText : 사용자가 후보군을 선택하면, 삽입할 Snippet
                 item.insertText = new vscode.SnippetString(
                   sbSnippetGenerator.getInsertText(item.label)
                 );
@@ -93,16 +82,11 @@ export function activate(context: vscode.ExtensionContext) {
                 // 치고있는 코드가 있는 경우, 그 값 포함하여 insertText
                 item.insertText = new vscode.SnippetString(
                   (
-                    linePrefixTest +
-                    sbSnippetGenerator.getInsertText(item.label)
+                    linePrefix + sbSnippetGenerator.getInsertText(item.label)
                   ).trim()
                 );
               }
-              item.insertText = new vscode.SnippetString(
-                sbSnippetGenerator.getInsertText(item.label)
-              );
             }
-            // item.insertText = new vscode.SnippetString("");
             return item;
           },
         }
@@ -134,37 +118,31 @@ export function activate(context: vscode.ExtensionContext) {
         const backCursorText = document
           .getText()
           .substring(cursorOffset, document.getText().length);
+
+        // 서버와의 통신할 정보를 가지고 SBSnippet Generator 객체 생성
         const sbSnippetGenerator = new SbSnippetGenerator(
           frontCursorTextLength,
           frontCursorText,
           backCursorText
         );
 
-        // const cSnippetGenerator = new SbSnippetGenerator(
-        //   frontCursorTextLength,
-        //   frontCursorText,
-        //   backCursorText
-        // );
+        // CompletionItems를 가져오는 메서드
+        sbSnippetGenerator.getCompletionItems();
 
-        let dataE;
-        dataE = sbSnippetGenerator.getCompletionItems();
-        // dataE = cSnippetGenerator.getCompletionItems();
+        // CompletionItems를 가져오면, 발생하는 메서드
         sbSnippetGenerator.onDataReceived((data: any) => {
-          sbData = data;
+          // c
+          candidatesData = data;
+          console.log("completionData : ", candidatesData);
           vscode.commands.executeCommand("extension.subhotkey");
         });
-        console.log("dataE", dataE);
-        // cSnippetGenerator.onDataReceived((data: any) => {
-        //   sbData = data;
-        //   console.log("데이터 받음");
-        //   vscode.commands.executeCommand("extension.subhotkey");
-        // });
       } else {
         console.log("현재 열려있는 편집기가 없습니다.");
       }
     }
   );
 
+  // TriggerSuggest가 잘 작동하는지 테스트하는 Command
   let codeTrigger = vscode.commands.registerCommand(
     "extension.Triggertest",
     () => {
