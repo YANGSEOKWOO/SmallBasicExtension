@@ -16,9 +16,14 @@
   "contributes": {
     "keybindings": [
       {
-        "key": "ctrl+space",
         "command": "extension.hotkey",
+        "key": "ctrl+space",
         "when": "editorTextFocus && !suggestWidgetVisible"
+      },
+      {
+        "command": "extension.completeCode",
+        "key": "ctrl+shift+i",
+        "when": "editorTextFocus"
       }
     ],
     "commands": [
@@ -33,6 +38,10 @@
       {
         "command": "extension.Triggertest",
         "title": "Triggertest"
+      },
+      {
+        "command": "extension.completeCode",
+        "title": "Complete Code"
       }
     ],
     "languages": [
@@ -85,6 +94,7 @@
   },
   "dependencies": {
     "net": "^1.0.2",
-    "ws": "^8.16.0"
+    "openai": "^4.47.1",
+    "ws": "^8.17.0"
   }
 }
