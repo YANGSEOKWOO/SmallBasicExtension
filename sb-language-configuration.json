@@ -2,7 +2,7 @@
 {
   // 주석 설정 : Comment toggling
   "comments": {
-    "lineComment": "'", // 한 줄 주석 기호
+    "lineComment": ["'","--"], // 한 줄 주석 기호
     "blockComment": ["REM", ""] // 블록 주석 시작 및 끝 기호
   },
 
