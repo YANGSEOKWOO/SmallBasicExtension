@@ -22,9 +22,17 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deactivate = exports.activate = void 0;
+// The module 'vscode' contains the VS Code extensibility API
+// Import the module and reference it with the alias vscode in your code below
+// plz 'npm install' initial of cloneproject
 const vscode = __importStar(require("vscode"));
+const path = __importStar(require("path"));
+const openai_1 = __importDefault(require("openai"));
 const sbSnippetGenerator_1 = require("./sbSnippetGenerator");
 // document : VSCode에서 열려있는 텍스트 문서
 // position : 현재 커서의 위치
@@ -37,9 +45,24 @@ let CompletionProvider;
 let candidatesData;
 let sbSnippetGenerator;
 let linePrefix;
+// -- ChatGPT API Code --
+const openai = new openai_1.default({
+    organization: "YOUR-ORGANIZATION-NAME",
+    apiKey: "YOUR-API-KEY",
+});
+// (Temporary) Fine Tuning Code
+async function generativeAIcommunication(message) {
+    const completion = await openai.chat.completions.create({
+        messages: [{ role: "user", content: message }],
+        model: "YOUR-GPT-MODEL",
+    });
+    const response = completion.choices[0].message.content;
+    return response;
+}
 function activate(context) {
     console.log("VSC Extension 실행");
     sbSnippetGenerator = new sbSnippetGenerator_1.SbSnippetGenerator("", "", "");
+    // --- Candidate Code Completion Code ---
     // 서버와 통신 후 받은 candidates를 가지고 후보목록을 보여주는 Command
     const completionCommand = vscode.commands.registerCommand("extension.subhotkey", () => {
         // 기존의 Completion 삭제
@@ -125,6 +148,58 @@ function activate(context) {
     let codeTrigger = vscode.commands.registerCommand("extension.Triggertest", () => {
         vscode.commands.executeCommand("editor.action.triggerSuggest");
     });
+    // --- ChatGPT Code Completion Code ---
+    let currentDocument = undefined;
+    let disposable = vscode.commands.registerCommand("extension.completeCode", async () => {
+        const folderPath = vscode.workspace.workspaceFolders?.[0].uri.fsPath; // 첫 번째 작업영역 폴더 경로 가져오기
+        const untitledUri = vscode.Uri.parse("untitled:" + path.join("SuggestedCode.sb")); // 코드를 보여줄 제목이 지정되지 않은 문서에 대한 URI 생성
+        const document = await vscode.workspace.openTextDocument(untitledUri); // URI에서 문서 열기 또는 만들기
+        const userEditor = vscode.window.activeTextEditor; // 사용자가 '현재 작업 중인' 활성 텍스트 편집기 가져오기
+        // 사용자가 '현재 작업 중인' 활성 텍스트 편집기 옆에 새 텍스트 문서(document, 임시로만든 SuggestedCode.sb 파일) 열기
+        const newEditor = await vscode.window.showTextDocument(document, {
+            viewColumn: vscode.ViewColumn.Beside,
+            preview: false,
+        });
+        // 현재 작업영역이 열려있지 않다면 에러 메시지 출력
+        if (!folderPath) {
+            vscode.window.showErrorMessage("Workspace is not open");
+            return;
+        }
+        // 사용자가 '현재 작업 중인' 활성 텍스트 편집기가 있다면 코드를 가져와서 ChatGPT API에 전달
+        if (userEditor) {
+            const document = userEditor.document;
+            const entireText = document.getText(); // 문서의 전체 내용(코드)을 가져온다.
+            vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                cancellable: false,
+            }, async (progress) => {
+                progress.report({
+                    message: "ChatGPT SmallBasic Completion is generating code...",
+                });
+                const response = await generativeAIcommunication(entireText);
+                progress.report({ message: "Updating editor now..." });
+                await newEditor.edit((editBuilder) => {
+                    // 웹뷰의 기존 내용을 전부 삭제(초기화)
+                    const lastLine = newEditor.document.lineAt(newEditor.document.lineCount - 1);
+                    const range = new vscode.Range(new vscode.Position(0, 0), lastLine.range.end);
+                    editBuilder.delete(range);
+                    // 새롭게 받은 내용을 웹뷰에 출력
+                    editBuilder.insert(new vscode.Position(0, 0), "[입력한 코드]\n" +
+                        entireText +
+                        "\n\n" +
+                        "==\n\n" +
+                        "[제안된 코드]\n" +
+                        response);
+                });
+                progress.report({
+                    message: "ChatGPT SmallBasic Completion has completed generating code!",
+                });
+                await new Promise((resolve) => setTimeout(resolve, 2000)); // 2초 동안 완료 메시지 출력
+                return;
+            });
+        }
+    });
+    context.subscriptions.push(disposable);
     context.subscriptions.push(hotKeyProvider, completionCommand, codeTrigger);
 }
 exports.activate = activate;
