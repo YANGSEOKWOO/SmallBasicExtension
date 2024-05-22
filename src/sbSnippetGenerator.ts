@@ -182,11 +182,14 @@ export class SbSnippetGenerator {
       typeof completionItem === "string"
         ? completionItem
         : completionItem.label;
-    const words = itemString.split(" ");
+    // 정규식을 사용하여 공백, 괄호로 문자열을 분리하되, 괄호는 유지하고 공백 요소는 제외
+    const words = itemString
+      .split(/(\s+|(?<=\()|(?=\()|(?<=\))|(?=\)))/g)
+      .filter(word => word.trim());
     console.log("words:", words);
 
     // 각 단어에 TabStop을 추가하여 새로운 문자열 생성
-    const placeholders = words
+    let placeholders = words
       .map((word, index) => {
         let placeholder;
         switch (word) {
@@ -212,13 +215,23 @@ export class SbSnippetGenerator {
             placeholder = `\n\${${index + 1}:body}\n`;
             break;
           default:
-            placeholder = `\${${index + 1}:${word}}`;
+            // 괄호와 =를 포함한 경우 TabStop 적용 안함
+            if (
+              word.trim() === "(" ||
+              word.trim() === ")" ||
+              word.trim() === "="
+            ) {
+              placeholder = word.trim();
+            } else {
+              placeholder = `\${${index + 1}:${word.trim()}}`;
+            }
         }
         // 해당 원소에 \n이 포함되어 있지 않으면 공백을 추가
         return placeholder.includes("\n") ? placeholder : placeholder + " ";
       })
       .join("");
 
+    placeholders = placeholders.replace(/\s+\(/g, "(");
     console.log("placeholders", placeholders);
     return placeholders;
   }
