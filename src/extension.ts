@@ -65,6 +65,7 @@ export function activate(context: vscode.ExtensionContext) {
               completion.documentation = completionDocs;
               completionItems.push(completion);
             }
+            ``;
             return completionItems;
           },
           resolveCompletionItem(item: vscode.CompletionItem) {
@@ -76,7 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
               if (linePrefix[lastIndex] === " ") {
                 // inserText : 사용자가 후보군을 선택하면, 삽입할 Snippet
                 item.insertText = new vscode.SnippetString(
-                  sbSnippetGenerator.getInsertText(item.label)
+                  sbSnippetGenerator.getInsertText(item.label).trim()
                 );
               } else {
                 // 치고있는 코드가 있는 경우, 그 값 포함하여 insertText
