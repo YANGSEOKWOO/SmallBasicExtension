@@ -47,14 +47,14 @@ let sbSnippetGenerator;
 let linePrefix;
 // -- ChatGPT API Code --
 const openai = new openai_1.default({
-    organization: "YOUR-ORGANIZATION-NAME",
-    apiKey: "YOUR-API-KEY",
+    organization: "",
+    apiKey: "",
 });
 // (Temporary) Fine Tuning Code
 async function generativeAIcommunication(message) {
     const completion = await openai.chat.completions.create({
         messages: [{ role: "user", content: message }],
-        model: "YOUR-GPT-MODEL",
+        model: "",
     });
     const response = completion.choices[0].message.content;
     return response;
@@ -178,6 +178,7 @@ function activate(context) {
                 });
                 const response = await generativeAIcommunication(entireText);
                 progress.report({ message: "Updating editor now..." });
+                // 사이드 웹뷰 화면에 작성했던 코드 + 응답 표시
                 await newEditor.edit((editBuilder) => {
                     // 웹뷰의 기존 내용을 전부 삭제(초기화)
                     const lastLine = newEditor.document.lineAt(newEditor.document.lineCount - 1);
@@ -190,6 +191,15 @@ function activate(context) {
                         "==\n\n" +
                         "[제안된 코드]\n" +
                         response);
+                });
+                // 유저 화면 편집기에 바로 결과를 업데이트
+                await userEditor.edit((editBuilder) => {
+                    // 활성 편집기의 내용을 전부 삭제
+                    const lastLine = document.lineAt(document.lineCount - 1);
+                    const range = new vscode.Range(new vscode.Position(0, 0), lastLine.range.end);
+                    editBuilder.delete(range);
+                    // 새롭게 받은 내용을 활성 편집기에 출력
+                    editBuilder.insert(new vscode.Position(0, 0), "" + response);
                 });
                 progress.report({
                     message: "ChatGPT SmallBasic Completion has completed generating code!",
