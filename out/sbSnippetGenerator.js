@@ -22,10 +22,17 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SbSnippetGenerator = void 0;
 const net = __importStar(require("net"));
 const fs = __importStar(require("fs"));
+const openai_1 = __importDefault(require("openai"));
+const openai = new openai_1.default({
+    apiKey: "",
+});
 //
 const PORT = 50000;
 let socket;
@@ -78,7 +85,7 @@ class SbSnippetGenerator {
         try {
             // 서버에 소켓 연결
             link = new net.Socket();
-            if (link === null) {
+            if (!link) {
                 return;
             }
             link.connect(PORT, host, () => {
@@ -140,7 +147,7 @@ class SbSnippetGenerator {
      */
     closingConnecting1() {
         try {
-            if (link !== null) {
+            if (link) {
                 console.log("연결종료");
                 link.end();
                 link = null;
@@ -177,7 +184,7 @@ class SbSnippetGenerator {
      * @param completionItem
      * @returns placeholders
      */
-    getInsertText(completionItem) {
+    async getInsertText(completionItem, resulted_prefix) {
         // 문자열 단어로 분리
         const itemString = typeof completionItem === "string"
             ? completionItem
@@ -187,50 +194,89 @@ class SbSnippetGenerator {
             .split(/(\s+|(?<=\()|(?=\()|(?<=\))|(?=\)))/g)
             .filter(word => word.trim());
         console.log("words:", words);
-        // 각 단어에 TabStop을 추가하여 새로운 문자열 생성
-        let placeholders = words
-            .map((word, index) => {
-            let placeholder;
-            switch (word) {
-                case "CR":
-                    placeholder = `\n`;
-                    break;
-                case "TheRest":
-                    placeholder = "";
-                    break;
-                case "OrExpr":
-                    placeholder = `\${${index + 1}:OR}`;
-                    break;
-                case "AndExpr":
-                    placeholder = `\${${index + 1}:AND}`;
-                    break;
-                case "EqNeqExpr":
-                    placeholder = `\${${index + 1}:==}`;
-                    break;
-                case "OptStep":
-                    placeholder = `\${${index + 1}:Step}`;
-                    break;
-                case "CRStmtCRs":
-                    placeholder = `\n\${${index + 1}:body}\n`;
-                    break;
-                default:
-                    // 괄호와 =를 포함한 경우 TabStop 적용 안함
-                    if (word.trim() === "(" ||
-                        word.trim() === ")" ||
-                        word.trim() === "=") {
-                        placeholder = word.trim();
-                    }
-                    else {
-                        placeholder = `\${${index + 1}:${word.trim()}}`;
-                    }
+        const modifiedWords = words.map(word => {
+            if (word === "ID") {
+                return "Identifier";
             }
-            // 해당 원소에 \n이 포함되어 있지 않으면 공백을 추가
-            return placeholder.includes("\n") ? placeholder : placeholder + " ";
-        })
-            .join("");
-        placeholders = placeholders.replace(/\s+\(/g, "(");
-        console.log("placeholders", placeholders);
-        return placeholders;
+            else if (word === "STR") {
+                return "String";
+            }
+            else if (word === "Exprs" || word === "Expr") {
+                return "Expression";
+            }
+            else {
+                return word;
+            }
+        });
+        if (resulted_prefix === "codecompletion") {
+            let placeholders = words
+                .map((word, index) => {
+                let placeholder;
+                switch (word) {
+                    case "CR":
+                        placeholder = `\n`;
+                        break;
+                    case "TheRest":
+                        placeholder = "";
+                        break;
+                    case "OrExpr":
+                        placeholder = `\${${index + 1}:OR}`;
+                        break;
+                    case "AndExpr":
+                        placeholder = `\${${index + 1}:AND}`;
+                        break;
+                    case "EqNeqExpr":
+                        placeholder = `\${${index + 1}:==}`;
+                        break;
+                    case "OptStep":
+                        placeholder = `\${${index + 1}:Step}`;
+                        break;
+                    case "CRStmtCRs":
+                        placeholder = `\n\${${index + 1}:body}\n`;
+                        break;
+                    default:
+                        // 괄호와 =를 포함한 경우 TabStop 적용 안함
+                        if (word.trim() === "(" ||
+                            word.trim() === ")" ||
+                            word.trim() === "=") {
+                            placeholder = word.trim();
+                        }
+                        else {
+                            placeholder = `\${${index + 1}:${word.trim()}}`;
+                        }
+                }
+                // 해당 원소에 \n이 포함되어 있지 않으면 공백을 추가
+                return placeholder.includes("\n") ? placeholder : placeholder + " ";
+            })
+                .join("");
+            placeholders = placeholders.replace(/\s+\(/g, "(");
+            console.log("placeholders", placeholders);
+            return placeholders;
+        }
+        else {
+            const modifiedStructCandi = modifiedWords.join(" ");
+            console.log("modifiedWords:", modifiedWords);
+            console.log("modifiedStructCandi:", modifiedStructCandi);
+            const prompt = `
+                This is the incomplete SmallBasic programming language code:
+                ${resulted_prefix}
+                '${modifiedStructCandi}'
+                Complete the '${modifiedStructCandi}' part of the code in the SmallBasic programming language. Just show your answer in place of '${modifiedStructCandi}'. 
+                `;
+            const chat_completion = await openai.chat.completions.create({
+                model: "gpt-3.5-turbo-0125",
+                messages: [
+                    {
+                        role: "user",
+                        content: prompt,
+                    },
+                ],
+            });
+            const response = chat_completion.choices[0].message.content;
+            console.log("response:", response);
+            return response;
+        }
+        // 각 단어에 TabStop을 추가하여 새로운 문자열 생성
     }
 }
 exports.SbSnippetGenerator = SbSnippetGenerator;

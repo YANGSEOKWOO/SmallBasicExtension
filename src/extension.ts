@@ -16,8 +16,9 @@ import { SbSnippetGenerator } from "./sbSnippetGenerator";
 // textArea : 전체 텍스트
 let CompletionProvider: any;
 let candidatesData: CompletionItem[];
-let sbSnippetGenerator: SbSnippetGenerator;
+let sbSnippetGenerator: SbSnippetGenerator | null = null; // 변경된 부분
 let linePrefix: string;
+let resulted_prefix: string;
 
 type CompletionItem = {
   key: string;
@@ -84,31 +85,39 @@ export function activate(context: vscode.ExtensionContext) {
               const completionDocs = new vscode.MarkdownString(
                 "빈도수 : " + value
               );
+              // Completion에 대한 documentation 작성
               completion.documentation = completionDocs;
+              // Code suggestion이  prefix에 의해 필터링되는 것을 막는 코드
+              completion.filterText = linePrefix;
               completionItems.push(completion);
             }
             ``;
             return completionItems;
           },
-          resolveCompletionItem(item: vscode.CompletionItem) {
+          async resolveCompletionItem(item: vscode.CompletionItem) {
             console.log("resolve함수 실행");
 
-            if (item) {
+            if (item && sbSnippetGenerator !== null) {
               const lastIndex = linePrefix.length - 1;
+              let insertText: string | null;
               // linePrefix : 치고있는 코드가 없는경우
               if (linePrefix[lastIndex] === " ") {
-                // inserText : 사용자가 후보군을 선택하면, 삽입할 Snippet
-                item.insertText = new vscode.SnippetString(
-                  sbSnippetGenerator.getInsertText(item.label).trim()
+                insertText = await sbSnippetGenerator.getInsertText(
+                  item.label,
+                  resulted_prefix
                 );
               } else {
-                // 치고있는 코드가 있는 경우, 그 값 포함하여 insertText
-                item.insertText = new vscode.SnippetString(
-                  (
-                    linePrefix + sbSnippetGenerator.getInsertText(item.label)
-                  ).trim()
-                );
+                insertText =
+                  linePrefix +
+                  (await sbSnippetGenerator.getInsertText(
+                    item.label,
+                    resulted_prefix
+                  ));
               }
+              if (insertText === null) {
+                insertText = "";
+              }
+              item.insertText = new vscode.SnippetString(insertText.trim());
             }
             return item;
           },
@@ -206,14 +215,14 @@ export function activate(context: vscode.ExtensionContext) {
             location: vscode.ProgressLocation.Notification,
             cancellable: false,
           },
-          async (progress) => {
+          async progress => {
             progress.report({
               message: "ChatGPT SmallBasic Completion is generating code...",
             });
             const response = await generativeAIcommunication(entireText);
             progress.report({ message: "Updating editor now..." });
 
-            await newEditor.edit((editBuilder) => {
+            await newEditor.edit(editBuilder => {
               // 웹뷰의 기존 내용을 전부 삭제(초기화)
               const lastLine = newEditor.document.lineAt(
                 newEditor.document.lineCount - 1
@@ -240,7 +249,7 @@ export function activate(context: vscode.ExtensionContext) {
               message:
                 "ChatGPT SmallBasic Completion has completed generating code!",
             });
-            await new Promise((resolve) => setTimeout(resolve, 2000)); // 2초 동안 완료 메시지 출력
+            await new Promise(resolve => setTimeout(resolve, 2000)); // 2초 동안 완료 메시지 출력
             return;
           }
         );
@@ -248,8 +257,146 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
+  // --- Prompt Code ---
+  const promptCommand = vscode.commands.registerCommand(
+    "extension.subpromptkey",
+    () => {
+      // 기존의 Completion 삭제
+      const disposable = vscode.Disposable.from(CompletionProvider);
+      disposable.dispose();
+
+      // 새로운 Completion 등록
+      CompletionProvider = vscode.languages.registerCompletionItemProvider(
+        ["smallbasic"],
+        {
+          provideCompletionItems(
+            document: vscode.TextDocument,
+            position: vscode.Position
+          ): vscode.ProviderResult<
+            vscode.CompletionItem[] | vscode.CompletionList
+          > {
+            const completionItems: vscode.CompletionItem[] = [];
+            for (const { key, value, sortText } of candidatesData) {
+              // completion : candidate 하나를 의미한다.
+              const completion = new vscode.CompletionItem(key.trim());
+              console.log("completion 값:", completion);
+
+              resulted_prefix = document.getText(
+                new vscode.Range(new vscode.Position(0, 0), position)
+              );
+
+              // 사용자의 커서위치 전~ 띄어쓰기 까지의 값
+              // ex) 'IF a = 10' 이라면, 10이 된다, 'IF a = 10 '이라면, ''이 된다.
+              linePrefix = document
+                .lineAt(position)
+                .text.slice(0, position.character);
+
+              // 구문후보군들을 빈도순으로 정렬하기 위한 sortText
+              completion.sortText = sortText;
+
+              // 각 구문부호군에 빈도수를 Docs로 출력하도록 설정
+              const completionDocs = new vscode.MarkdownString(
+                "빈도수 : " + value
+              );
+              // Completion에 대한 documentation 작성
+              completion.documentation = completionDocs;
+              // Code suggestion이  prefix에 의해 필터링되는 것을 막는 코드
+              completion.filterText = linePrefix;
+              completionItems.push(completion);
+            }
+            ``;
+            return completionItems;
+          },
+          async resolveCompletionItem(item: vscode.CompletionItem) {
+            // 사용자가 현재까지 작성한 코드의 내용이 들어가야 한다. (resulted_prefix)
+            // 이 함수는 선택되면, 선택된 것 : item이라고 불림
+            // prompt에 줘야하는 값 : 언어, resulted_prefix, item이겠네
+            console.log("resolve함수 실행");
+
+            if (item && sbSnippetGenerator !== null) {
+              const lastIndex = linePrefix.length - 1;
+              let insertText: string | null;
+              console.log("linePrefix[lastIndex] = ", linePrefix[lastIndex]);
+              if (linePrefix[lastIndex] === " ") {
+                insertText = await sbSnippetGenerator.getInsertText(
+                  item.label,
+                  resulted_prefix
+                );
+              } else {
+                insertText =
+                  linePrefix +
+                  (await sbSnippetGenerator.getInsertText(
+                    item.label,
+                    resulted_prefix
+                  ));
+              }
+              if (insertText === null) {
+                insertText = ""; // insertText가 null인 경우 빈 문자열로 설정
+              }
+              item.insertText = new vscode.SnippetString(insertText);
+            }
+            return item;
+          },
+        }
+      );
+      // Triggest Suggest 실행
+      vscode.commands.executeCommand("editor.action.triggerSuggest");
+    }
+  );
+  // hot key를 누르면 시작되는 command
+  // Server에게 값을 준다.
+  const PromptKeyProvider = vscode.commands.registerCommand(
+    "extension.promptkey",
+    () => {
+      const activeEditor = vscode.window.activeTextEditor;
+
+      if (activeEditor) {
+        // 현재 열려있는 편집기의 문서 가져오기
+        const document = activeEditor.document;
+
+        // 커서 위치 가져오기
+        const cursorPosition = activeEditor.selection.active;
+        const cursorOffset = document.offsetAt(cursorPosition);
+
+        const frontCursorTextLength = `${document
+          .getText()
+          .length.toString()} True`;
+        const frontCursorText = document.getText().substring(0, cursorOffset);
+        const backCursorText = document
+          .getText()
+          .substring(cursorOffset, document.getText().length);
+
+        // 서버와의 통신할 정보를 가지고 SBSnippet Generator 객체 생성
+        const sbSnippetGenerator = new SbSnippetGenerator(
+          frontCursorTextLength,
+          frontCursorText,
+          backCursorText
+        );
+
+        // CompletionItems를 가져오는 메서드
+        sbSnippetGenerator.getCompletionItems();
+
+        // CompletionItems를 가져오면, 발생하는 메서드
+        sbSnippetGenerator.onDataReceived((data: any) => {
+          // c
+          candidatesData = data;
+          console.log("completionData : ", candidatesData);
+          vscode.commands.executeCommand("extension.subpromptkey");
+        });
+      } else {
+        console.log("현재 열려있는 편집기가 없습니다.");
+      }
+    }
+  );
+
   context.subscriptions.push(disposable);
-  context.subscriptions.push(hotKeyProvider, completionCommand, codeTrigger);
+  context.subscriptions.push(
+    hotKeyProvider,
+    completionCommand,
+    codeTrigger,
+    promptCommand,
+    PromptKeyProvider
+  );
 }
 
 // This method is called when your extension is deactivated

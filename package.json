@@ -24,6 +24,11 @@
         "command": "extension.completeCode",
         "key": "ctrl+shift+i",
         "when": "editorTextFocus"
+      },
+      {
+        "command": "extension.promptkey",
+        "key": "ctrl+shift+o",
+        "when": "editorTextFocus && !suggestWidgetVisible"
       }
     ],
     "commands": [
