@@ -104,14 +104,14 @@ export function activate(context: vscode.ExtensionContext) {
               if (linePrefix[lastIndex] === " ") {
                 insertText = await sbSnippetGenerator.getInsertText(
                   item.label,
-                  resulted_prefix
+                  "codecompletion"
                 );
               } else {
                 insertText =
                   linePrefix +
                   (await sbSnippetGenerator.getInsertText(
                     item.label,
-                    resulted_prefix
+                    "codecompletion"
                   ));
               }
               if (insertText === null) {

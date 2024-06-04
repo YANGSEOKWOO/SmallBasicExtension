@@ -4,7 +4,7 @@ import * as net from "net";
 import * as fs from "fs";
 import OpenAI from "openai";
 const openai = new OpenAI({
-  apiKey: "",
+  apiKey: "apikey",
 });
 //
 const PORT = 50000;
