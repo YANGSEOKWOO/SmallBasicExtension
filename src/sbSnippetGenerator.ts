@@ -4,7 +4,7 @@ import * as net from "net";
 import * as fs from "fs";
 import OpenAI from "openai";
 const openai = new OpenAI({
-  apiKey: "apikey",
+  apiKey: "",
 });
 //
 const PORT = 50000;
@@ -262,7 +262,7 @@ export class SbSnippetGenerator {
                 Complete the '${modifiedStructCandi}' part of the code in the SmallBasic programming language. Just show your answer in place of '${modifiedStructCandi}'. 
                 `;
       const chat_completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo-0125",
+        model: "",
         messages: [
           {
             role: "user",

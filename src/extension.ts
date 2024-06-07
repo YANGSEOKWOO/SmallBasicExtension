@@ -4,7 +4,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import OpenAI from "openai";
-import { WebSocket } from "ws";
 import { SbSnippetGenerator } from "./sbSnippetGenerator";
 
 // document : VSCode에서 열려있는 텍스트 문서
@@ -97,6 +96,12 @@ export function activate(context: vscode.ExtensionContext) {
           async resolveCompletionItem(item: vscode.CompletionItem) {
             console.log("resolve함수 실행");
 
+            // Graphics.Window 같은 경우 Window만 prefix가 되어야 한다.
+            // 그에 따른 '.'위치 이후까지를 prefix로 가져온다.
+            const lastDotIndex = linePrefix.lastIndexOf(".");
+            if (lastDotIndex !== -1) {
+              linePrefix = linePrefix.slice(lastDotIndex + 1).trim();
+            }
             if (item && sbSnippetGenerator !== null) {
               const lastIndex = linePrefix.length - 1;
               let insertText: string | null;
@@ -215,7 +220,7 @@ export function activate(context: vscode.ExtensionContext) {
             location: vscode.ProgressLocation.Notification,
             cancellable: false,
           },
-          async (progress) => {
+          async progress => {
             progress.report({
               message: "ChatGPT SmallBasic Completion is generating code...",
             });
@@ -223,7 +228,7 @@ export function activate(context: vscode.ExtensionContext) {
             progress.report({ message: "Updating editor now..." });
 
             // 사이드 웹뷰 화면에 작성했던 코드 + 응답 표시
-            await newEditor.edit((editBuilder) => {
+            await newEditor.edit(editBuilder => {
               // 웹뷰의 기존 내용을 전부 삭제(초기화)
               const lastLine = newEditor.document.lineAt(
                 newEditor.document.lineCount - 1
@@ -247,7 +252,7 @@ export function activate(context: vscode.ExtensionContext) {
             });
 
             // 유저 화면 편집기에 바로 결과를 업데이트
-            await userEditor.edit((editBuilder) => {
+            await userEditor.edit(editBuilder => {
               // 활성 편집기의 내용을 전부 삭제
               const lastLine = document.lineAt(document.lineCount - 1);
               const range = new vscode.Range(
@@ -264,7 +269,7 @@ export function activate(context: vscode.ExtensionContext) {
               message:
                 "ChatGPT SmallBasic Completion has completed generating code!",
             });
-            await new Promise((resolve) => setTimeout(resolve, 2000)); // 2초 동안 완료 메시지 출력
+            await new Promise(resolve => setTimeout(resolve, 2000)); // 2초 동안 완료 메시지 출력
             return;
           }
         );
@@ -328,10 +333,18 @@ export function activate(context: vscode.ExtensionContext) {
             // prompt에 줘야하는 값 : 언어, resulted_prefix, item이겠네
             console.log("resolve함수 실행");
 
+            // Graphics.Window 같은 경우 Window만 prefix가 되어야 한다.
+            // 그에 따른 '.'위치 이후까지를 prefix로 가져온다.
+            const lastDotIndex = linePrefix.lastIndexOf(".");
+            if (lastDotIndex !== -1) {
+              linePrefix = linePrefix.slice(lastDotIndex + 1).trim();
+            }
+
             if (item && sbSnippetGenerator !== null) {
               const lastIndex = linePrefix.length - 1;
               let insertText: string | null;
               console.log("linePrefix[lastIndex] = ", linePrefix[lastIndex]);
+              console.log("linePrefix : ", linePrefix);
               if (linePrefix[lastIndex] === " ") {
                 insertText = await sbSnippetGenerator.getInsertText(
                   item.label,

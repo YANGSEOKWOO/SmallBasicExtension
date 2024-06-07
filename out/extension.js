@@ -48,14 +48,14 @@ let linePrefix;
 let resulted_prefix;
 // -- ChatGPT API Code --
 const openai = new openai_1.default({
-    organization: "YOUR-ORGANIZATION-NAME",
-    apiKey: "YOUR-API-KEY",
+    organization: "",
+    apiKey: "",
 });
 // (Temporary) Fine Tuning Code
 async function generativeAIcommunication(message) {
     const completion = await openai.chat.completions.create({
         messages: [{ role: "user", content: message }],
-        model: "YOUR-GPT-MODEL",
+        model: "",
     });
     const response = completion.choices[0].message.content;
     return response;
@@ -97,17 +97,23 @@ function activate(context) {
             },
             async resolveCompletionItem(item) {
                 console.log("resolve함수 실행");
+                // Graphics.Window 같은 경우 Window만 prefix가 되어야 한다.
+                // 그에 따른 '.'위치 이후까지를 prefix로 가져온다.
+                const lastDotIndex = linePrefix.lastIndexOf(".");
+                if (lastDotIndex !== -1) {
+                    linePrefix = linePrefix.slice(lastDotIndex + 1).trim();
+                }
                 if (item && sbSnippetGenerator !== null) {
                     const lastIndex = linePrefix.length - 1;
                     let insertText;
                     // linePrefix : 치고있는 코드가 없는경우
                     if (linePrefix[lastIndex] === " ") {
-                        insertText = await sbSnippetGenerator.getInsertText(item.label, resulted_prefix);
+                        insertText = await sbSnippetGenerator.getInsertText(item.label, "codecompletion");
                     }
                     else {
                         insertText =
                             linePrefix +
-                                (await sbSnippetGenerator.getInsertText(item.label, resulted_prefix));
+                                (await sbSnippetGenerator.getInsertText(item.label, "codecompletion"));
                     }
                     if (insertText === null) {
                         insertText = "";
@@ -187,6 +193,7 @@ function activate(context) {
                 });
                 const response = await generativeAIcommunication(entireText);
                 progress.report({ message: "Updating editor now..." });
+                // 사이드 웹뷰 화면에 작성했던 코드 + 응답 표시
                 await newEditor.edit(editBuilder => {
                     // 웹뷰의 기존 내용을 전부 삭제(초기화)
                     const lastLine = newEditor.document.lineAt(newEditor.document.lineCount - 1);
@@ -199,6 +206,15 @@ function activate(context) {
                         "==\n\n" +
                         "[제안된 코드]\n" +
                         response);
+                });
+                // 유저 화면 편집기에 바로 결과를 업데이트
+                await userEditor.edit(editBuilder => {
+                    // 활성 편집기의 내용을 전부 삭제
+                    const lastLine = document.lineAt(document.lineCount - 1);
+                    const range = new vscode.Range(new vscode.Position(0, 0), lastLine.range.end);
+                    editBuilder.delete(range);
+                    // 새롭게 받은 내용을 활성 편집기에 출력
+                    editBuilder.insert(new vscode.Position(0, 0), "" + response);
                 });
                 progress.report({
                     message: "ChatGPT SmallBasic Completion has completed generating code!",
@@ -245,10 +261,17 @@ function activate(context) {
                 // 이 함수는 선택되면, 선택된 것 : item이라고 불림
                 // prompt에 줘야하는 값 : 언어, resulted_prefix, item이겠네
                 console.log("resolve함수 실행");
+                // Graphics.Window 같은 경우 Window만 prefix가 되어야 한다.
+                // 그에 따른 '.'위치 이후까지를 prefix로 가져온다.
+                const lastDotIndex = linePrefix.lastIndexOf(".");
+                if (lastDotIndex !== -1) {
+                    linePrefix = linePrefix.slice(lastDotIndex + 1).trim();
+                }
                 if (item && sbSnippetGenerator !== null) {
                     const lastIndex = linePrefix.length - 1;
                     let insertText;
                     console.log("linePrefix[lastIndex] = ", linePrefix[lastIndex]);
+                    console.log("linePrefix : ", linePrefix);
                     if (linePrefix[lastIndex] === " ") {
                         insertText = await sbSnippetGenerator.getInsertText(item.label, resulted_prefix);
                     }
