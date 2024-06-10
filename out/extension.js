@@ -99,10 +99,6 @@ function activate(context) {
                 console.log("resolve함수 실행");
                 // Graphics.Window 같은 경우 Window만 prefix가 되어야 한다.
                 // 그에 따른 '.'위치 이후까지를 prefix로 가져온다.
-                const lastDotIndex = linePrefix.lastIndexOf(".");
-                if (lastDotIndex !== -1) {
-                    linePrefix = linePrefix.slice(lastDotIndex + 1).trim();
-                }
                 if (item && sbSnippetGenerator !== null) {
                     const lastIndex = linePrefix.length - 1;
                     let insertText;
@@ -111,6 +107,10 @@ function activate(context) {
                         insertText = await sbSnippetGenerator.getInsertText(item.label, "codecompletion");
                     }
                     else {
+                        const lastDotIndex = linePrefix.lastIndexOf(".");
+                        if (lastDotIndex !== -1) {
+                            linePrefix = linePrefix.slice(lastDotIndex + 1).trim();
+                        }
                         insertText =
                             linePrefix +
                                 (await sbSnippetGenerator.getInsertText(item.label, "codecompletion"));

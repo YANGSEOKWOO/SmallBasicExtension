@@ -114,7 +114,8 @@ class SbSnippetGenerator {
                     for (const { key, value, sortText } of candidates) {
                         let completionWord = key;
                         completionWord = completionWord
-                            .replace(/\[|\]/g, "") // 대괄호 삭제
+                            .replace(/^\[/, "") // 시작 대괄호 삭제
+                            .replace(/\]$/, "") // 끝 대괄호 삭제
                             .replace(/,/g, "") // 쉼표 삭제
                             .replace(/\s+\bT\b/g, " ") // 'T'를 공백으로 대체
                             .replace(/\bT\b/g, "") // 'T' 삭제
