@@ -1,0 +1,28 @@
+// language-configuration.json
+{
+  "comments": {
+    "lineComment": "//",
+    "blockComment": ["/*", "*/"]
+  },
+  "brackets": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"]
+  ],
+  "autoClosingPairs": [
+    { "open": "{", "close": "}" },
+    { "open": "[", "close": "]" },
+    { "open": "(", "close": ")" }
+  ],
+  "surroundingPairs": [
+    { "open": "{", "close": "}" },
+    { "open": "[", "close": "]" },
+    { "open": "(", "close": ")" },
+    { "open": "\"", "close": "\"" },
+    { "open": "'", "close": "'" }
+  ],
+  "indentationRules": {
+    "increaseIndentPattern": "^.*\\b((?!//).)*(if|else|for|while)\\b.*\\{[^}\"']*$",
+    "decreaseIndentPattern": "^.*\\b((?!//).)*(if|else|for|while)\\b.*\\}[^}\"']*$"
+  }
+}

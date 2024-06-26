@@ -16,35 +16,37 @@
   "contributes": {
     "keybindings": [
       {
+        "command": "extension.hotkey",
         "key": "ctrl+space",
-        "command": "sb.hotkey",
         "when": "editorTextFocus && !suggestWidgetVisible"
       },
       {
-        "key": "ctrl+p",
-        "command": "editor.action.insertSnippet",
-        "when": "editorTextFocus",
-        "args": {
-          "snippet": "console.log($1)$0"
-        }
+        "command": "extension.completeCode",
+        "key": "ctrl+shift+i",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "extension.promptkey",
+        "key": "ctrl+shift+o",
+        "when": "editorTextFocus && !suggestWidgetVisible"
       }
     ],
     "commands": [
       {
-        "command": "sb.hotkey",
+        "command": "extension.hotkey",
         "title": "hotkey"
       },
       {
-        "command": "sb.helloWorld",
-        "title": "Hello World"
-      },
-      {
-        "command": "sb.subhotkey",
+        "command": "extension.subhotkey",
         "title": "subhotkey"
       },
       {
-        "command": "sb.Triggertest",
+        "command": "extension.Triggertest",
         "title": "Triggertest"
+      },
+      {
+        "command": "extension.completeCode",
+        "title": "Complete Code"
       }
     ],
     "languages": [
@@ -58,13 +60,14 @@
           ".sb",
           ".smallbasic"
         ],
-        "configuration": "./language-configuration.json"
-      }
-    ],
-    "snippets": [
+        "configuration": "./sb-language-configuration.json"
+      },
       {
-        "language": "smallbasic",
-        "path": "./snippets/smallbasic.snippets.json"
+        "id": "c",
+        "extensions": [
+          ".c"
+        ],
+        "configuration": "./c-language-configuration.json"
       }
     ],
     "grammars": [
@@ -96,6 +99,7 @@
   },
   "dependencies": {
     "net": "^1.0.2",
-    "ws": "^8.16.0"
+    "openai": "^4.47.1",
+    "ws": "^8.17.0"
   }
 }
